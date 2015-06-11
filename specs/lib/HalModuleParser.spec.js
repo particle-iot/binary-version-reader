@@ -155,30 +155,80 @@ describe("HalModuleParser", function() {
 			}).catch(done);
 	});
 
-
-	it("should read suffix info from part 1", function(done) {
-		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
-		var expectedPrefixInfo = {
-			moduleStartAddy: '8020000',
-			moduleEndAddy: '805cba4',
-			moduleVersion: 1,
-			platformID: 6,
-			moduleFunction: 4,
-			moduleIndex: 1,
-			depModuleFunction: 0,
-			depModuleIndex: 0,
-			depModuleVersion: 0
+	it("should read suffix info from system part 1", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_system-part1.bin");
+		var expectedSuffixInfo = {
+			product_id: -1,
+			product_version: -1,
+			fw_unique_id: 'ecb6acb4cf75ca04169f2214a24c470516cabe91683ac3664bdd174c4bb50386',
+			reserved: 0,
+			suffixSize: 36,
+			crcBlock: '5d7db471'
 		};
 
 		var parser = new HalModuleParser();
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
-				console.log("got part 1 suffix ", fileInfo.suffixInfo);
+				//console.log("got part 1 suffix ", fileInfo.suffixInfo);
 
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
-//				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+	it("should read suffix info from system part 2", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_system-part2.bin");
+		var expectedSuffixInfo = {
+			product_id: -1,
+			product_version: -1,
+			fw_unique_id: 'ea3d9d175a6eee3d10023316240b51bea8200bdc182d0343801161b7ca53e2ae',
+			reserved: 0,
+			suffixSize: 36,
+			crcBlock: '7db66023' };
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log("got part 2 suffix ", fileInfo.suffixInfo);
+
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+
+	it("should read suffix info from the user part", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var expectedSuffixInfo = {
+			product_id: -1,
+			product_version: -1,
+			fw_unique_id: 'f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36',
+			reserved: 0,
+			suffixSize: 36,
+			crcBlock: 'b138f375'
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log("got part 1 suffix ", fileInfo.suffixInfo);
+
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
 				done();
 			},
 			function(err) {
