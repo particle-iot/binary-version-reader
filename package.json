@@ -1,15 +1,17 @@
 {
-	"name": "binary-version-reader",
-	"version": "0.0.1",
-	"main": "main.js",
-	"dependencies": {
-		"when": "^3.7.3"
-	},
-	"devDependencies": {
-		"mocha": "^2.2.5",
-		"should": "^6.0.3"
-	},
-	"scripts": {
-		"test": "mocha -R nyan specs/**"
-	}
+  "name": "binary-version-reader",
+  "version": "0.0.1",
+  "main": "main.js",
+  "dependencies": {
+    "buffer-crc32": "^0.2.5",
+    "mocha": "^2.2.5",
+    "when": "^3.7.3"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "should": "^6.0.3"
+  },
+  "scripts": {
+    "test": "mocha -R nyan specs/**"
+  }
 }
