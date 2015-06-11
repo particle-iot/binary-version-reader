@@ -60,30 +60,73 @@ describe("HalModuleParser", function() {
 				return when.resolve();
 			}
 		])
-		.then(
+			.then(
 			done.bind(null, null),
 			done.bind(null));
 
 	});
 
-	it("should read product info from a binary", function(done) {
+	it("should read prefix info from part 1", function(done) {
 		var filename = path.join(settings.binaries, "../binaries/040_system-part1.bin");
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8020000',
+			moduleEndAddy: '805cba4',
+			moduleVersion: 1,
+			platformID: 6,
+			moduleFunction: 4,
+			moduleIndex: 1,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log("got part 1 info ", fileInfo);
+
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+	it("should read prefix info from part 2", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_system-part2.bin");
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8060000',
+			moduleEndAddy: '807e954',
+			moduleVersion: 1,
+			platformID: 6,
+			moduleFunction: 4,
+			moduleIndex: 2,
+			depModuleFunction: 4,
+			depModuleIndex: 1,
+			depModuleVersion: 1
+		};
+
+
 		var parser = new HalModuleParser();
 
 		parser.parseFile(filename)
-		.then(
+			.then(
 			function(fileInfo) {
-				console.log("got fileInfo ", fileInfo);
+				//console.log("got part 2 info ", fileInfo);
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
 
 				done();
 			},
 			function(err) {
 				done(err)
-			});
+			}).catch(done);
 	});
-
 
 
 	it("should read info from a system module part 1");
