@@ -4,6 +4,7 @@
   "main": "main.js",
   "dependencies": {
     "buffer-crc32": "^0.2.5",
+    "h5.buffers": "^0.1.1",
     "mocha": "^2.2.5",
     "when": "^3.7.3",
     "xtend": "^4.0.0"

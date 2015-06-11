@@ -66,6 +66,26 @@ describe("HalModuleParser", function() {
 
 	});
 
+	it("should read product info from a binary", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_system-part1.bin");
+		var parser = new HalModuleParser();
+
+		parser.parseFile(filename)
+		.then(
+			function(fileInfo) {
+				console.log("got fileInfo ", fileInfo);
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+
+				done();
+			},
+			function(err) {
+				done(err)
+			});
+	});
+
+
+
 	it("should read info from a system module part 1");
 	it("should read info from a system module part 2");
 	it("should read info from a user module");
