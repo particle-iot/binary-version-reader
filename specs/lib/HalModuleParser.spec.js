@@ -110,9 +110,7 @@ describe("HalModuleParser", function() {
 			depModuleVersion: 1
 		};
 
-
 		var parser = new HalModuleParser();
-
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
@@ -141,9 +139,7 @@ describe("HalModuleParser", function() {
 			depModuleIndex: 2,
 			depModuleVersion: 1 };
 
-
 		var parser = new HalModuleParser();
-
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
