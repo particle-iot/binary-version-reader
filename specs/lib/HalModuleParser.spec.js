@@ -4,6 +4,9 @@
 
 var path = require("path");
 var should = require("should");
+var when = require('when');
+var pipeline = require('when/pipeline');
+
 var HalModuleParser = require('../../lib/HalModuleParser.js');
 
 var settings = {
@@ -19,9 +22,9 @@ describe("HalModuleParser", function() {
 		var parser = new HalModuleParser();
 		parser._loadFile(filename)
 			.then(
-				done.bind(null, "should have failed"),
-				done.bind(null, null)
-			);
+			done.bind(null, "should have failed"),
+			done.bind(null, null)
+		);
 	});
 
 	it("should succeed when the file exists", function(done) {
@@ -29,16 +32,39 @@ describe("HalModuleParser", function() {
 		var parser = new HalModuleParser();
 		parser._loadFile(filename)
 			.then(
-				done.bind(null, null),
-				done.bind(null, "should have passed")
-			);
+			done.bind(null, null),
+			done.bind(null, "should have passed")
+		);
 	});
 
 
+	it("should validate the CRC in the binary", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_system-part1.bin");
+		var parser = new HalModuleParser();
 
+		pipeline([
+			function() {
+				return parser._loadFile(filename);
+			},
+			function(buffer) {
+				return parser._validateCRC(buffer);
+			},
+			function(crcInfo) {
+				//console.log("got crcInfo ", crcInfo);
 
+				should(crcInfo).be.ok;
+				should(crcInfo.ok).be.ok;
+				should(crcInfo.actualCrc).be.ok;
+				should(crcInfo.storedCrc).eql(crcInfo.actualCrc);
 
-	it("should validate the CRC in the binary");
+				return when.resolve();
+			}
+		])
+		.then(
+			done.bind(null, null),
+			done.bind(null));
+
+	});
 
 	it("should read info from a system module part 1");
 	it("should read info from a system module part 2");
