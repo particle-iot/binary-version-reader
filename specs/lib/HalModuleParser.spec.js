@@ -128,10 +128,38 @@ describe("HalModuleParser", function() {
 			}).catch(done);
 	});
 
+	it("should read prefix info from a user module", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var expectedPrefixInfo = {
+			moduleStartAddy: '80a0000',
+			moduleEndAddy: '80a128c',
+			moduleVersion: 2,
+			platformID: 6,
+			moduleFunction: 5,
+			moduleIndex: 1,
+			depModuleFunction: 4,
+			depModuleIndex: 2,
+			depModuleVersion: 1 };
 
-	it("should read info from a system module part 1");
-	it("should read info from a system module part 2");
-	it("should read info from a user module");
+
+		var parser = new HalModuleParser();
+
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log("got user info ", fileInfo);
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+
 	it("should read info from a bootloader module");
 	it("should know what kind of module it's looking at");
 });
