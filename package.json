@@ -5,7 +5,8 @@
   "dependencies": {
     "buffer-crc32": "^0.2.5",
     "mocha": "^2.2.5",
-    "when": "^3.7.3"
+    "when": "^3.7.3",
+    "xtend": "^4.0.0"
   },
   "devDependencies": {
     "mocha": "^2.2.5",
