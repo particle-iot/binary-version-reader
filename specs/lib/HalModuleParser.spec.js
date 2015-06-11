@@ -84,7 +84,7 @@ describe("HalModuleParser", function() {
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
-				//console.log("got part 1 info ", fileInfo);
+				//console.log("got part 1 info ", fileInfo.prefixInfo);
 
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
@@ -114,7 +114,7 @@ describe("HalModuleParser", function() {
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
-				//console.log("got part 2 info ", fileInfo);
+				//console.log("got part 2 info ", fileInfo.prefixInfo);
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
 				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
@@ -143,11 +143,42 @@ describe("HalModuleParser", function() {
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
-				//console.log("got user info ", fileInfo);
+				//console.log("got user info ", fileInfo.prefixInfo);
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
 				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
 
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+
+	it("should read suffix info from part 1", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8020000',
+			moduleEndAddy: '805cba4',
+			moduleVersion: 1,
+			platformID: 6,
+			moduleFunction: 4,
+			moduleIndex: 1,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				console.log("got part 1 suffix ", fileInfo.suffixInfo);
+
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+//				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
 				done();
 			},
 			function(err) {
