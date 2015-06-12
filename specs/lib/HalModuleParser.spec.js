@@ -224,7 +224,7 @@ describe("HalModuleParser", function() {
 		parser.parseFile(filename)
 			.then(
 			function(fileInfo) {
-				//console.log("got part 1 suffix ", fileInfo.suffixInfo);
+				//console.log("got part 1 info ", fileInfo);
 
 				should(fileInfo).be.ok;
 				should(fileInfo.crc.ok).be.ok;
