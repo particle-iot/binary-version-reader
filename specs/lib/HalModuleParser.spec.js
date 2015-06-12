@@ -237,6 +237,57 @@ describe("HalModuleParser", function() {
 	});
 
 
-	it("should read info from a bootloader module");
-	it("should know what kind of module it's looking at");
+	it("should read info from a bootloader module", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/RC4_bootloader_pad_BM-09.bin");
+
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8000000',
+			moduleEndAddy: '8003f98',
+			moduleVersion: 2,
+			platformID: 6,
+			moduleFunction: 2,
+			moduleIndex: 0,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0
+		};
+
+		var expectedSuffixInfo = {
+			product_id: 65535,
+			product_version: 65535,
+			fw_unique_id: 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+			reserved: 65535,
+			suffixSize: 65535,
+			crcBlock: 'ffffffff'
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log("got bootloader info ", fileInfo);
+
+				should(fileInfo).be.ok;
+
+				//bootloader CRC is actually bad
+				//should(fileInfo.crc.ok).be.ok;
+
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
+	it("should have a working example", function(done) {
+		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var Reader = require('../../main.js');
+		var reader = new Reader();
+		reader.parseFile(filename, function(fileInfo, err) {
+			should(fileInfo).be.ok;
+			done();
+		});
+	});
 });
