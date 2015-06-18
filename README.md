@@ -22,7 +22,9 @@ Something like...
 	"filename": "/.../040_user-part.bin",
 	"fileBuffer": "<Buffer ...>",
 	"crc": {
-		"ok": 1, storedCrc: "b138f375", actualCrc: "b138f375"
+		"ok": 1, 
+		"storedCrc": "b138f375", 
+		"actualCrc": "b138f375"
 	},
 	"prefixInfo": {
 		"moduleStartAddy": "80a0000",
