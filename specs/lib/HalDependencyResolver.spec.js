@@ -31,7 +31,7 @@ describe("HalDependencyResolver", function() {
 		var fixed_test_data = require('./fixed_describe.json.js').m;
 
 		var resolver = new HalDependencyResolver();
-		var result = resolver.repairDescribeErrors(photon_reported_modules);
+		var result = resolver._repairDescribeErrors(photon_reported_modules);
 
 		should(result).eql(fixed_test_data);
 	});
@@ -55,6 +55,34 @@ describe("HalDependencyResolver", function() {
 		should(result).eql(expected_describe);
 	});
 
-	it("looks at what a binary depends on and ")
+
+	it("walk a dependency chain nicely", function() {
+		var fixed_test_data = require('./fixed_describe.json.js').m;
+		var safe_binary_reqs = {
+			f: "s",
+			n: "2",
+			v: 1
+		};
+
+		var resolver = new HalDependencyResolver();
+		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		should(arr).eql([]);
+	});
+
+	it("flag a module for update when out of version", function() {
+		var fixed_test_data = require('./fixed_describe.json.js').m;
+		var system_part2 = fixed_test_data[2];
+
+		var safe_binary_reqs = {
+			f: "s",
+			n: "2",
+			v: system_part2.v + 1
+		};
+
+		var resolver = new HalDependencyResolver();
+		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		should(arr.length).eql(1);
+		should(arr[0]).eql(system_part2);
+	});
 
 });
