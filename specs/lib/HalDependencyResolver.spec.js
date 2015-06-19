@@ -27,7 +27,6 @@ describe("HalDependencyResolver", function() {
 
 
 	it("repairs errors in module names and versions", function() {
-
 		var photon_reported_modules = require('./describe.json.js').m;
 		var fixed_test_data = require('./fixed_describe.json.js').m;
 
@@ -36,5 +35,26 @@ describe("HalDependencyResolver", function() {
 
 		should(result).eql(fixed_test_data);
 	});
+
+	it("converts binary metadata into describe format", function() {
+		var userPrefixInfo = {
+			depModuleFunction: 4,
+			depModuleIndex: 2,
+			depModuleVersion: 1
+		};
+
+		var expected_describe = {
+			f: "s",
+			n: "2",
+			v: 1
+		};
+
+		var resolver = new HalDependencyResolver();
+		var result = resolver._binary_deps_to_describe(userPrefixInfo);
+
+		should(result).eql(expected_describe);
+	});
+
+	it("looks at what a binary depends on and ")
 
 });
