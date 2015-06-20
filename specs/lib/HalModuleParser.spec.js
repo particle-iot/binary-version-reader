@@ -13,7 +13,7 @@ var settings = {
 	binaries: path.resolve(path.join(__dirname, "../binaries"))
 };
 
-console.log("binaries dir is " + settings.binaries);
+//console.log("binaries dir is " + settings.binaries);
 
 
 describe("HalModuleParser", function() {

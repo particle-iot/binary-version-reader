@@ -16,24 +16,6 @@ var settings = {
 
 describe("HalDependencyResolver", function() {
 
-//	it("makes sense out of this", function(done) {
-//		var test_data = require('./../describes/describe.json.js');
-//		var photon_reported_modules = test_data.m;
-//
-//		// from the dependency region of the binary metadata encoded in the binary
-//		// requires that the system module named "1", should be at version 1
-//		var new_binary_requires = [
-//			{
-//				f: "s",
-//				n: "1",
-//				v: 1
-//			}
-//		];
-//
-//		var resolver = new HalDependencyResolver();
-//		resolver.solve(photon_reported_modules, new_binary_requires);
-//	});
-
 
 	it("repairs errors in module names and versions", function() {
 		var photon_reported_modules = require('./../describes/describe.json.js').m;
@@ -107,13 +89,15 @@ describe("HalDependencyResolver", function() {
 		resolver.assimilateModule(part2);
 
 
-		var old_describe = path.join(settings.binaries, "../describes/old_describe.json.js");
+		var describeFilename = path.join(settings.binaries, "../describes/old_describe.json.js");
+		var old_describe = require(describeFilename).m;
+
 		var userFirmware = path.join(settings.binaries, "../binaries/040_user-part.bin");
 		var fileBuffer = fs.readFileSync(userFirmware);
 
 		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
 			.then(function(result) {
-				console.log("dependency resolve result was ", JSON.stringify(result));
+				console.log("dependency resolve result had ", result.length, " items ");
 				done();
 			}, function(err) {
 				done(err);
