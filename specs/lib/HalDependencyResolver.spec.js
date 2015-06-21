@@ -133,6 +133,8 @@ describe("HalDependencyResolver", function() {
 				done();
 			}, function(err) {
 				done(err);
+			}).catch(function(err) {
+				done(err);
 			});
 	});
 
