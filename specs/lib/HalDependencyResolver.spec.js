@@ -77,6 +77,27 @@ describe("HalDependencyResolver", function() {
 	});
 
 
+	/**
+	 * loads the system parts,
+	 * reads their binary info,
+	 *
+	 * passes in a user binary
+	 * reads its binary info / dependencies
+	 *
+	 * walks recursively up the dependency chain
+	 *
+	 * matches dependencies to our known good modules,
+	 *
+	 * AND RETURNS THEM.
+	 *
+	 *
+		 ______     __     __     ______     ______     ______
+		/\  ___\   /\ \  _ \ \   /\  ___\   /\  ___\   /\__  _\
+		\ \___  \  \ \ \/ ".\ \  \ \  __\   \ \  __\   \/_/\ \/
+		 \/\_____\  \ \__/".~\_\  \ \_____\  \ \_____\    \ \_\
+		  \/_____/   \/_/   \/_/   \/_____/   \/_____/     \/_/
+
+	 */
 	it("passes a full test", function(done) {
 
 		var resolver = new HalDependencyResolver();
@@ -95,9 +116,20 @@ describe("HalDependencyResolver", function() {
 		var userFirmware = path.join(settings.binaries, "../binaries/040_user-part.bin");
 		var fileBuffer = fs.readFileSync(userFirmware);
 
+		//
+		// given a describe message from a device, and some user firmware, get the modules we need to run it.
+		//
 		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
 			.then(function(result) {
+				should(result).be.ok;
 				console.log("dependency resolve result had ", result.length, " items ");
+				should(result.length).eql(2);
+
+				//the first thing should be part1, and the second thing part2
+
+				should(result[0].filename).endWith("system-part1.bin");
+				should(result[1].filename).endWith("system-part2.bin");
+
 				done();
 			}, function(err) {
 				done(err);
