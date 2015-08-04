@@ -138,4 +138,45 @@ describe("HalDependencyResolver", function() {
 			});
 	});
 
+	it("recommend modules when going from 042 to 043", function(done) {
+
+		var resolver = new HalDependencyResolver();
+
+		var part1 = path.join(settings.binaries, "../binaries/043_system-part1.bin");
+		var part2 = path.join(settings.binaries, "../binaries/043_system-part2.bin");
+
+		// load those modules in!
+		resolver.assimilateModule(part1);
+		resolver.assimilateModule(part2);
+
+
+		var describeFilename = path.join(settings.binaries, "../describes/042_describe.json.js");
+		var old_describe = require(describeFilename).m;
+
+		var userFirmware = path.join(settings.binaries, "../binaries/043_user-part.bin");
+		var fileBuffer = fs.readFileSync(userFirmware);
+
+		//
+		// given a describe message from a device, and some user firmware, get the modules we need to run it.
+		//
+		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
+			.then(function(result) {
+				should(result).be.ok;
+				console.log("dependency resolve result had ", result.length, " items ");
+				should(result.length).eql(2);
+
+				//the first thing should be part1, and the second thing part2
+
+				should(result[0].filename).endWith("system-part1.bin");
+				should(result[1].filename).endWith("system-part2.bin");
+
+				done();
+			}, function(err) {
+				done(err);
+			}).catch(function(err) {
+				done(err);
+			});
+	});
+
+
 });
