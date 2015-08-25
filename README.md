@@ -47,3 +47,10 @@ Something like...
 	}
 }
 ```
+
+
+##known issues
+
+* missing better documentation / examples
+* support for hal firmware on the core
+* tests for newer platforms as they become available
