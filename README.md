@@ -3,7 +3,7 @@ The Particle Binary Version Reader!
 
 If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware!  This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
 
-[![Build Status](https://magnum.travis-ci.com/spark/binary-version-reader.svg?token=YhDuVMh9nC1TDy4CqNmY&branch=master)](https://magnum.travis-ci.com/spark/binary-version-reader)
+[![Build Status](https://travis-ci.org/spark/binary-version-reader.svg?branch=master)](https://travis-ci.org/spark/binary-version-reader)
 
 
 Usage
