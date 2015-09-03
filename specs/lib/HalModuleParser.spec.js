@@ -174,9 +174,9 @@ describe("HalModuleParser", function() {
 	it("should read suffix info from system part 1", function(done) {
 		var filename = path.join(settings.binaries, "../binaries/040_system-part1.bin");
 		var expectedSuffixInfo = {
-			product_id: -1,
-			product_version: -1,
-			fw_unique_id: 'ecb6acb4cf75ca04169f2214a24c470516cabe91683ac3664bdd174c4bb50386',
+			productId: -1,
+			productVersion: -1,
+			fwUniqueId: 'ecb6acb4cf75ca04169f2214a24c470516cabe91683ac3664bdd174c4bb50386',
 			reserved: 0,
 			suffixSize: 36,
 			crcBlock: '5d7db471'
@@ -201,9 +201,9 @@ describe("HalModuleParser", function() {
 	it("should read suffix info from system part 2", function(done) {
 		var filename = path.join(settings.binaries, "../binaries/040_system-part2.bin");
 		var expectedSuffixInfo = {
-			product_id: -1,
-			product_version: -1,
-			fw_unique_id: 'ea3d9d175a6eee3d10023316240b51bea8200bdc182d0343801161b7ca53e2ae',
+			productId: -1,
+			productVersion: -1,
+			fwUniqueId: 'ea3d9d175a6eee3d10023316240b51bea8200bdc182d0343801161b7ca53e2ae',
 			reserved: 0,
 			suffixSize: 36,
 			crcBlock: '7db66023' };
@@ -228,9 +228,9 @@ describe("HalModuleParser", function() {
 	it("should read suffix info from the user part", function(done) {
 		var filename = path.join(settings.binaries, "../binaries/040_user-part.bin");
 		var expectedSuffixInfo = {
-			product_id: -1,
-			product_version: -1,
-			fw_unique_id: 'f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36',
+			productId: -1,
+			productVersion: -1,
+			fwUniqueId: 'f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36',
 			reserved: 0,
 			suffixSize: 36,
 			crcBlock: 'b138f375'
@@ -269,9 +269,9 @@ describe("HalModuleParser", function() {
 		};
 
 		var expectedSuffixInfo = {
-			product_id: 65535,
-			product_version: 65535,
-			fw_unique_id: 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+			productId: 65535,
+			productVersion: 65535,
+			fwUniqueId: 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
 			reserved: 65535,
 			suffixSize: 65535,
 			crcBlock: 'ffffffff'
