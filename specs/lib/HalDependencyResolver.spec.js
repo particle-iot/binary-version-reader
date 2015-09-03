@@ -34,13 +34,13 @@ describe("HalDependencyResolver", function() {
 
 
 	it("repairs errors in module names and versions", function() {
-		var photon_reported_modules = require('./../describes/describe.json.js').m;
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
+		var photonReportedModules = require('./../describes/describe.json.js').m;
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
 
 		var resolver = new HalDependencyResolver();
-		var result = resolver._repairDescribeErrors(photon_reported_modules);
+		var result = resolver._repairDescribeErrors(photonReportedModules);
 
-		should(result).eql(fixed_test_data);
+		should(result).eql(fixedTestData);
 	});
 
 	it("converts binary metadata into describe format", function() {
@@ -50,46 +50,46 @@ describe("HalDependencyResolver", function() {
 			depModuleVersion: 1
 		};
 
-		var expected_describe = {
+		var expectedDescribe = {
 			f: "s",
 			n: "2",
 			v: 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var result = resolver._binary_deps_to_describe(userPrefixInfo);
+		var result = resolver._binaryDepsToDescribe(userPrefixInfo);
 
-		should(result).eql(expected_describe);
+		should(result).eql(expectedDescribe);
 	});
 
 
 	it("walk a dependency chain nicely", function() {
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
-		var safe_binary_reqs = {
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		var safeBinaryReqs = {
 			f: "s",
 			n: "2",
 			v: 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr).eql([]);
 	});
 
 	it("flag a module for update when out of version", function() {
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
-		var system_part2 = fixed_test_data[2];
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		var systemPart2 = fixedTestData[2];
 
-		var safe_binary_reqs = {
+		var safeBinaryReqs = {
 			f: "s",
 			n: "2",
-			v: system_part2.v + 1
+			v: systemPart2.v + 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr.length).eql(1);
-		should(arr[0]).eql(system_part2);
+		should(arr[0]).eql(systemPart2);
 	});
 
 
@@ -127,7 +127,7 @@ describe("HalDependencyResolver", function() {
 
 
 		var describeFilename = path.join(settings.binaries, "../describes/old_describe.json.js");
-		var old_describe = require(describeFilename).m;
+		var oldDescribe = require(describeFilename).m;
 
 		var userFirmware = path.join(settings.binaries, "../binaries/040_user-part.bin");
 		var fileBuffer = fs.readFileSync(userFirmware);
@@ -135,7 +135,7 @@ describe("HalDependencyResolver", function() {
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
+		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
 				console.log("dependency resolve result had ", result.length, " items ");
@@ -167,7 +167,7 @@ describe("HalDependencyResolver", function() {
 
 
 		var describeFilename = path.join(settings.binaries, "../describes/042_describe.json.js");
-		var old_describe = require(describeFilename).m;
+		var oldDescribe = require(describeFilename).m;
 
 		var userFirmware = path.join(settings.binaries, "../binaries/043_user-part.bin");
 		var fileBuffer = fs.readFileSync(userFirmware);
@@ -175,7 +175,7 @@ describe("HalDependencyResolver", function() {
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
+		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
 				console.log("dependency resolve result had ", result.length, " items ");
