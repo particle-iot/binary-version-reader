@@ -19,21 +19,21 @@
  */
 
 var fs = require('fs');
-var path = require("path");
+var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
-var HalDependencyResolver = require ("../../lib/HalDependencyResolver.js");
+var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
 
 var settings = {
-	binaries: path.resolve(path.join(__dirname, "../binaries"))
+	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
 
-describe("HalDependencyResolver", function() {
+describe('HalDependencyResolver', function() {
 
 
-	it("repairs errors in module names and versions", function() {
+	it('repairs errors in module names and versions', function() {
 		var photonReportedModules = require('./../describes/describe.json.js').m;
 		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
 
@@ -43,7 +43,7 @@ describe("HalDependencyResolver", function() {
 		should(result).eql(fixedTestData);
 	});
 
-	it("converts binary metadata into describe format", function() {
+	it('converts binary metadata into describe format', function() {
 		var userPrefixInfo = {
 			depModuleFunction: 4,
 			depModuleIndex: 2,
@@ -51,8 +51,8 @@ describe("HalDependencyResolver", function() {
 		};
 
 		var expectedDescribe = {
-			f: "s",
-			n: "2",
+			f: 's',
+			n: '2',
 			v: 1
 		};
 
@@ -63,11 +63,11 @@ describe("HalDependencyResolver", function() {
 	});
 
 
-	it("walk a dependency chain nicely", function() {
+	it('walk a dependency chain nicely', function() {
 		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
 		var safeBinaryReqs = {
-			f: "s",
-			n: "2",
+			f: 's',
+			n: '2',
 			v: 1
 		};
 
@@ -76,13 +76,13 @@ describe("HalDependencyResolver", function() {
 		should(arr).eql([]);
 	});
 
-	it("flag a module for update when out of version", function() {
+	it('flag a module for update when out of version', function() {
 		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
 		var systemPart2 = fixedTestData[2];
 
 		var safeBinaryReqs = {
-			f: "s",
-			n: "2",
+			f: 's',
+			n: '2',
 			v: systemPart2.v + 1
 		};
 
@@ -114,22 +114,22 @@ describe("HalDependencyResolver", function() {
 		  \/_____/   \/_/   \/_/   \/_____/   \/_____/     \/_/
 
 	 */
-	it("passes a full test", function(done) {
+	it('passes a full test', function(done) {
 
 		var resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, "../binaries/040_system-part1.bin");
-		var part2 = path.join(settings.binaries, "../binaries/040_system-part2.bin");
+		var part1 = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var part2 = path.join(settings.binaries, '../binaries/040_system-part2.bin');
 
 		// load those modules in!
 		resolver.assimilateModule(part1);
 		resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, "../describes/old_describe.json.js");
+		var describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
 		var oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var userFirmware = path.join(settings.binaries, '../binaries/040_user-part.bin');
 		var fileBuffer = fs.readFileSync(userFirmware);
 
 		//
@@ -138,13 +138,13 @@ describe("HalDependencyResolver", function() {
 		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
-				console.log("dependency resolve result had ", result.length, " items ");
+				console.log('dependency resolve result had ', result.length, ' items ');
 				should(result.length).eql(2);
 
 				//the first thing should be part1, and the second thing part2
 
-				should(result[0].filename).endWith("system-part1.bin");
-				should(result[1].filename).endWith("system-part2.bin");
+				should(result[0].filename).endWith('system-part1.bin');
+				should(result[1].filename).endWith('system-part2.bin');
 
 				done();
 			}, function(err) {
@@ -154,22 +154,22 @@ describe("HalDependencyResolver", function() {
 			});
 	});
 
-	it("recommend modules when going from 042 to 043", function(done) {
+	it('recommend modules when going from 042 to 043', function(done) {
 
 		var resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, "../binaries/043_system-part1.bin");
-		var part2 = path.join(settings.binaries, "../binaries/043_system-part2.bin");
+		var part1 = path.join(settings.binaries, '../binaries/043_system-part1.bin');
+		var part2 = path.join(settings.binaries, '../binaries/043_system-part2.bin');
 
 		// load those modules in!
 		resolver.assimilateModule(part1);
 		resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, "../describes/042_describe.json.js");
+		var describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
 		var oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, "../binaries/043_user-part.bin");
+		var userFirmware = path.join(settings.binaries, '../binaries/043_user-part.bin');
 		var fileBuffer = fs.readFileSync(userFirmware);
 
 		//
@@ -178,13 +178,13 @@ describe("HalDependencyResolver", function() {
 		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
-				console.log("dependency resolve result had ", result.length, " items ");
+				console.log('dependency resolve result had ', result.length, ' items ');
 				should(result.length).eql(2);
 
 				//the first thing should be part1, and the second thing part2
 
-				should(result[0].filename).endWith("system-part1.bin");
-				should(result[1].filename).endWith("system-part2.bin");
+				should(result[0].filename).endWith('system-part1.bin');
+				should(result[1].filename).endWith('system-part2.bin');
 
 				done();
 			}, function(err) {
