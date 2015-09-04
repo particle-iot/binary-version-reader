@@ -299,7 +299,7 @@ describe('HalModuleParser', function() {
 
 	it('should have a working example', function(done) {
 		var filename = path.join(settings.binaries, '../binaries/040_user-part.bin');
-		var Reader = require('../../main.js');
+		var Reader = require('../../main.js').HalModuleParser;
 		var reader = new Reader();
 		reader.parseFile(filename, function(fileInfo, err) {
 			should(fileInfo).be.ok;
