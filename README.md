@@ -9,7 +9,7 @@ If you're building firmware on the Particle Platform, you might be curious to se
 Usage
 ===
 
-Something like... 
+Something like...
 
 ```
     var Reader = require('binary-version-reader');
@@ -25,8 +25,8 @@ Something like...
 	"filename": "/.../040_user-part.bin",
 	"fileBuffer": "<Buffer ...>",
 	"crc": {
-		"ok": 1, 
-		"storedCrc": "b138f375", 
+		"ok": 1,
+		"storedCrc": "b138f375",
 		"actualCrc": "b138f375"
 	},
 	"prefixInfo": {
@@ -41,9 +41,9 @@ Something like...
 		"depModuleVersion": 1
 	},
 	"suffixInfo": {
-		"product_id": -1,
-		"product_version": -1,
-		"fw_unique_id": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
+		"productId": -1,
+		"productVersion": -1,
+		"fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
 		"reserved": 0,
 		"suffixSize": 36,
 		"crcBlock": "b138f375"
