@@ -1,5 +1,5 @@
 /**
- * describe payload from an 042 photon
+ * describe payload from an 042 photon with met dependencies
  */
 
 module.exports = {
