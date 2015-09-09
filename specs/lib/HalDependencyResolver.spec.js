@@ -194,5 +194,33 @@ describe('HalDependencyResolver', function() {
 			});
 	});
 
+	it('rejects when detects missing dependencies', function(done){
+		var fixedTestData = require('./../describes/fixed_describe.json.js');
+		var resolver = new HalDependencyResolver();
+
+		resolver.userModuleHasMissingDependencies(fixedTestData)
+			.then(function(result) {
+				done(result);
+			}, function(err) {
+				err.length.should.eql(1);
+				err[0].func.should.eql('s');
+				err[0].name.should.eql('1');
+				done();
+			});
+	});
+
+	it('resolves when dependencies are met', function(done){
+		var data = require('./../describes/fixed_dependencies_describe.json.js');
+		var resolver = new HalDependencyResolver();
+
+		resolver.userModuleHasMissingDependencies(data)
+			.then(function(result) {
+				result.func.should.eql('s');
+				result.name.should.eql('1');
+				done();
+			}, function(err) {
+				done(err);
+			});
+	});
 
 });

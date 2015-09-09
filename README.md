@@ -12,7 +12,7 @@ Usage
 Something like...
 
 ```
-    var Reader = require('binary-version-reader');
+    var Reader = require('binary-version-reader').HalModuleParser;
     var reader = new Reader();
     reader.parseFile('your_binary.bin', function(fileInfo, err) {
         console.log(fileInfo);
@@ -52,7 +52,7 @@ Something like...
 ```
 
 
-##known issues
+## Known issues
 
 * missing better documentation / examples
 * support for hal firmware on the core
