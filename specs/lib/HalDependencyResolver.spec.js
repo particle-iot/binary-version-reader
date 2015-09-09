@@ -198,7 +198,7 @@ describe('HalDependencyResolver', function() {
 		var fixedTestData = require('./../describes/fixed_describe.json.js');
 		var resolver = new HalDependencyResolver();
 
-		resolver.descibeHasMissingDependencies(fixedTestData)
+		resolver.userModuleHasMissingDependencies(fixedTestData)
 			.then(function(result) {
 				done(result);
 			}, function(err) {
@@ -213,7 +213,7 @@ describe('HalDependencyResolver', function() {
 		var data = require('./../describes/fixed_dependencies_describe.json.js');
 		var resolver = new HalDependencyResolver();
 
-		resolver.descibeHasMissingDependencies(data)
+		resolver.userModuleHasMissingDependencies(data)
 			.then(function(result) {
 				result.func.should.eql('s');
 				result.name.should.eql('1');
