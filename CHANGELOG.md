@@ -1,6 +1,7 @@
 ## 0.2.0
 
 * unified method/return names
+* changed how module is exported
 
 ## 0.1.0
 
