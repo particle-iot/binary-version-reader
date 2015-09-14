@@ -20,5 +20,6 @@
 
 module.exports = {
   HalModuleParser: require('./lib/HalModuleParser.js'),
-  HalDependencyResolver: require('./lib/HalDependencyResolver.js')
+  HalDependencyResolver: require('./lib/HalDependencyResolver.js'),
+  FirmwareModule: require('./lib/FirmwareModule.js')
 };

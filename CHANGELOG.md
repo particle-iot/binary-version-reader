@@ -1,3 +1,7 @@
+## 0.2.1
+
+* export `FirmwareModule`
+
 ## 0.2.0
 
 * unified method/return names
