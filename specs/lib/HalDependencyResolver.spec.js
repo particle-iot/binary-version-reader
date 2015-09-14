@@ -24,6 +24,7 @@ var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
 var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
+var FirmwareModule = require('../../lib/FirmwareModule');
 
 var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
@@ -221,6 +222,28 @@ describe('HalDependencyResolver', function() {
 			}, function(err) {
 				done(err);
 			});
+	});
+
+	it('solves firmware module', function(){
+		var data = require('./../describes/fixed_dependencies_describe.json.js');
+		var resolver = new HalDependencyResolver();
+		var module = new FirmwareModule({
+			d: [
+				{
+					f: 's',
+					n: '2',
+					v: 2
+				}
+			]
+		});
+
+		var result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
+		result.should.eql([]);
+
+		module.dependencies[0].version = 5;
+		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
+		result.length.should.eql(1);
+		result[0].v.should.eql(2);
 	});
 
 });

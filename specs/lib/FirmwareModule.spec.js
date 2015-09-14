@@ -1,26 +1,27 @@
 var should = require('should');
 var FirmwareModule = require('../../lib/FirmwareModule');
 
+var message = {
+	s: 131072,
+	l: "m",
+	vc: 30,
+	vv: 30,
+	u: "7F2F2B5C5A4F40D9844D109B7FBD730BF2237C252EF03ED5075CEB9901AF985E",
+	f: "u",
+	n: "1",
+	v: 3,
+	d: [
+		{
+			f: "s",
+			n: "2",
+			v: 5,
+			_: ""
+		}
+	]
+};
+
 describe('FirmwareModule', function(){
 	it('should parse describe message', function(){
-		var message = {
-			s: 131072,
-			l: "m",
-			vc: 30,
-			vv: 30,
-			u: "7F2F2B5C5A4F40D9844D109B7FBD730BF2237C252EF03ED5075CEB9901AF985E",
-			f: "u",
-			n: "1",
-			v: 3,
-			d: [
-				{
-					f: "s",
-					n: "2",
-					v: 5,
-					_: ""
-				}
-			]
-		};
 		var module = new FirmwareModule(message);
 		module.uuid.should.eql(message.u);
 		module.func.should.eql(message.f);
@@ -70,5 +71,32 @@ describe('FirmwareModule', function(){
 	it('should not parse null/undefined describe', function(){
 		var module = new FirmwareModule(null);
 		module = new FirmwareModule(undefined);
+	});
+
+	it('should return describe like object', function(){
+		var module = new FirmwareModule(message);
+		var describe = module.toDescribe();
+		describe.u.should.eql(describe.u);
+		describe.f.should.eql(describe.f);
+		describe.l.should.eql(describe.l);
+		describe.n.should.eql(describe.n);
+		describe.v.should.eql(describe.v);
+		describe.s.should.eql(describe.s);
+		describe.vc.should.eql(describe.vc);
+		describe.vv.should.eql(describe.vv);
+		describe.d.should.eql(describe.d);
+	});
+
+	it('should return dependency resolution status', function(){
+		var module = new FirmwareModule(message);
+		var data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		var result = module.areDependenciesMet(data.m);
+		result.should.eql(false);
+
+		module.dependencies[0].version = 2;
+
+		var result = module.areDependenciesMet(data.m);
+		result.should.eql(true);
 	});
 });

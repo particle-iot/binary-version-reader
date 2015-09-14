@@ -1,3 +1,8 @@
+## 0.2.2
+
+* added `solveFirmwareModule` method in `HalDependencyResolver`
+* added `toDescribe` and `areDependenciesMet` methods in `FirmwareModule`
+
 ## 0.2.1
 
 * export `FirmwareModule`
