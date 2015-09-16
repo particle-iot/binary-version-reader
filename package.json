@@ -16,5 +16,8 @@
   },
   "scripts": {
     "test": "mocha -R nyan specs/**"
+  },
+  "bin": {
+     "pmod" : "bin/pmod.js"
   }
 }
