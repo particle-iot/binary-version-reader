@@ -1,79 +1,96 @@
+/*
+ *  Copyright 2015 Particle ( https://particle.io )
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 /**
  * Created by middleca on 6/18/15.
  */
 
 var fs = require('fs');
-var path = require("path");
+var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
-var HalDependencyResolver = require ("../../lib/HalDependencyResolver.js");
+var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
+var FirmwareModule = require('../../lib/FirmwareModule');
 
 var settings = {
-	binaries: path.resolve(path.join(__dirname, "../binaries"))
+	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
 
-describe("HalDependencyResolver", function() {
+describe('HalDependencyResolver', function() {
 
 
-	it("repairs errors in module names and versions", function() {
-		var photon_reported_modules = require('./../describes/describe.json.js').m;
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
+	it('repairs errors in module names and versions', function() {
+		var photonReportedModules = require('./../describes/describe.json.js').m;
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
 
 		var resolver = new HalDependencyResolver();
-		var result = resolver._repairDescribeErrors(photon_reported_modules);
+		var result = resolver._repairDescribeErrors(photonReportedModules);
 
-		should(result).eql(fixed_test_data);
+		should(result).eql(fixedTestData);
 	});
 
-	it("converts binary metadata into describe format", function() {
+	it('converts binary metadata into describe format', function() {
 		var userPrefixInfo = {
 			depModuleFunction: 4,
 			depModuleIndex: 2,
 			depModuleVersion: 1
 		};
 
-		var expected_describe = {
-			f: "s",
-			n: "2",
+		var expectedDescribe = {
+			f: 's',
+			n: '2',
 			v: 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var result = resolver._binary_deps_to_describe(userPrefixInfo);
+		var result = resolver._binaryDepsToDescribe(userPrefixInfo);
 
-		should(result).eql(expected_describe);
+		should(result).eql(expectedDescribe);
 	});
 
 
-	it("walk a dependency chain nicely", function() {
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
-		var safe_binary_reqs = {
-			f: "s",
-			n: "2",
+	it('walk a dependency chain nicely', function() {
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		var safeBinaryReqs = {
+			f: 's',
+			n: '2',
 			v: 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr).eql([]);
 	});
 
-	it("flag a module for update when out of version", function() {
-		var fixed_test_data = require('./../describes/fixed_describe.json.js').m;
-		var system_part2 = fixed_test_data[2];
+	it('flag a module for update when out of version', function() {
+		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		var systemPart2 = fixedTestData[2];
 
-		var safe_binary_reqs = {
-			f: "s",
-			n: "2",
-			v: system_part2.v + 1
+		var safeBinaryReqs = {
+			f: 's',
+			n: '2',
+			v: systemPart2.v + 1
 		};
 
 		var resolver = new HalDependencyResolver();
-		var arr = resolver._walk_chain(fixed_test_data, safe_binary_reqs);
+		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr.length).eql(1);
-		should(arr[0]).eql(system_part2);
+		should(arr[0]).eql(systemPart2);
 	});
 
 
@@ -98,37 +115,37 @@ describe("HalDependencyResolver", function() {
 		  \/_____/   \/_/   \/_/   \/_____/   \/_____/     \/_/
 
 	 */
-	it("passes a full test", function(done) {
+	it('passes a full test', function(done) {
 
 		var resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, "../binaries/040_system-part1.bin");
-		var part2 = path.join(settings.binaries, "../binaries/040_system-part2.bin");
+		var part1 = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var part2 = path.join(settings.binaries, '../binaries/040_system-part2.bin');
 
 		// load those modules in!
 		resolver.assimilateModule(part1);
 		resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, "../describes/old_describe.json.js");
-		var old_describe = require(describeFilename).m;
+		var describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
+		var oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, "../binaries/040_user-part.bin");
+		var userFirmware = path.join(settings.binaries, '../binaries/040_user-part.bin');
 		var fileBuffer = fs.readFileSync(userFirmware);
 
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
+		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
-				console.log("dependency resolve result had ", result.length, " items ");
+				console.log('dependency resolve result had ', result.length, ' items ');
 				should(result.length).eql(2);
 
 				//the first thing should be part1, and the second thing part2
 
-				should(result[0].filename).endWith("system-part1.bin");
-				should(result[1].filename).endWith("system-part2.bin");
+				should(result[0].filename).endWith('system-part1.bin');
+				should(result[1].filename).endWith('system-part2.bin');
 
 				done();
 			}, function(err) {
@@ -138,37 +155,37 @@ describe("HalDependencyResolver", function() {
 			});
 	});
 
-	it("recommend modules when going from 042 to 043", function(done) {
+	it('recommend modules when going from 042 to 043', function(done) {
 
 		var resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, "../binaries/043_system-part1.bin");
-		var part2 = path.join(settings.binaries, "../binaries/043_system-part2.bin");
+		var part1 = path.join(settings.binaries, '../binaries/043_system-part1.bin');
+		var part2 = path.join(settings.binaries, '../binaries/043_system-part2.bin');
 
 		// load those modules in!
 		resolver.assimilateModule(part1);
 		resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, "../describes/042_describe.json.js");
-		var old_describe = require(describeFilename).m;
+		var describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
+		var oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, "../binaries/043_user-part.bin");
+		var userFirmware = path.join(settings.binaries, '../binaries/043_user-part.bin');
 		var fileBuffer = fs.readFileSync(userFirmware);
 
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parse_and_resolve(old_describe, fileBuffer)
+		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
 			.then(function(result) {
 				should(result).be.ok;
-				console.log("dependency resolve result had ", result.length, " items ");
+				console.log('dependency resolve result had ', result.length, ' items ');
 				should(result.length).eql(2);
 
 				//the first thing should be part1, and the second thing part2
 
-				should(result[0].filename).endWith("system-part1.bin");
-				should(result[1].filename).endWith("system-part2.bin");
+				should(result[0].filename).endWith('system-part1.bin');
+				should(result[1].filename).endWith('system-part2.bin');
 
 				done();
 			}, function(err) {
@@ -178,5 +195,55 @@ describe("HalDependencyResolver", function() {
 			});
 	});
 
+	it('rejects when detects missing dependencies', function(done){
+		var fixedTestData = require('./../describes/fixed_describe.json.js');
+		var resolver = new HalDependencyResolver();
+
+		resolver.userModuleHasMissingDependencies(fixedTestData)
+			.then(function(result) {
+				done(result);
+			}, function(err) {
+				err.length.should.eql(1);
+				err[0].func.should.eql('s');
+				err[0].name.should.eql('1');
+				done();
+			});
+	});
+
+	it('resolves when dependencies are met', function(done){
+		var data = require('./../describes/fixed_dependencies_describe.json.js');
+		var resolver = new HalDependencyResolver();
+
+		resolver.userModuleHasMissingDependencies(data)
+			.then(function(result) {
+				result.func.should.eql('s');
+				result.name.should.eql('1');
+				done();
+			}, function(err) {
+				done(err);
+			});
+	});
+
+	it('solves firmware module', function(){
+		var data = require('./../describes/fixed_dependencies_describe.json.js');
+		var resolver = new HalDependencyResolver();
+		var module = new FirmwareModule({
+			d: [
+				{
+					f: 's',
+					n: '2',
+					v: 2
+				}
+			]
+		});
+
+		var result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
+		result.should.eql([]);
+
+		module.dependencies[0].version = 5;
+		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
+		result.length.should.eql(1);
+		result[0].v.should.eql(2);
+	});
 
 });

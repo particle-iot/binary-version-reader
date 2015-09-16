@@ -1,7 +1,8 @@
 {
   "name": "binary-version-reader",
-  "version": "0.0.1",
+  "version": "0.2.2",
   "main": "main.js",
+  "license" : "Apache-2.0",
   "dependencies": {
     "buffer-crc32": "^0.2.5",
     "h5.buffers": "^0.1.1",
@@ -15,5 +16,8 @@
   },
   "scripts": {
     "test": "mocha -R nyan specs/**"
+  },
+  "bin": {
+     "pmod" : "bin/pmod.js"
   }
 }

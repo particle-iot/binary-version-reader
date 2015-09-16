@@ -3,13 +3,16 @@ The Particle Binary Version Reader!
 
 If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware!  This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
 
+[![Build Status](https://travis-ci.org/spark/binary-version-reader.svg?branch=master)](https://travis-ci.org/spark/binary-version-reader)
+
+
 Usage
 ===
 
-Something like... 
+Something like...
 
 ```
-    var Reader = require('binary-version-reader');
+    var Reader = require('binary-version-reader').HalModuleParser;
     var reader = new Reader();
     reader.parseFile('your_binary.bin', function(fileInfo, err) {
         console.log(fileInfo);
@@ -22,8 +25,8 @@ Something like...
 	"filename": "/.../040_user-part.bin",
 	"fileBuffer": "<Buffer ...>",
 	"crc": {
-		"ok": 1, 
-		"storedCrc": "b138f375", 
+		"ok": 1,
+		"storedCrc": "b138f375",
 		"actualCrc": "b138f375"
 	},
 	"prefixInfo": {
@@ -38,12 +41,19 @@ Something like...
 		"depModuleVersion": 1
 	},
 	"suffixInfo": {
-		"product_id": -1,
-		"product_version": -1,
-		"fw_unique_id": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
+		"productId": -1,
+		"productVersion": -1,
+		"fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
 		"reserved": 0,
 		"suffixSize": 36,
 		"crcBlock": "b138f375"
 	}
 }
 ```
+
+
+## Known issues
+
+* missing better documentation / examples
+* support for hal firmware on the core
+* tests for newer platforms as they become available
