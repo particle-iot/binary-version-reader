@@ -1,3 +1,7 @@
+## 0.2.3
+
+* fixed `userModuleHasMissingDependencies` to resolve if monolithic describe
+
 ## 0.2.2
 
 * added `solveFirmwareModule` method in `HalDependencyResolver`
