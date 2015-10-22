@@ -196,16 +196,21 @@ describe('HalDependencyResolver', function() {
 	});
 
 	it('rejects when detects missing dependencies', function(done){
-		var fixedTestData = require('./../describes/fixed_describe.json.js');
+		var userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
 		var resolver = new HalDependencyResolver();
 
-		resolver.userModuleHasMissingDependencies(fixedTestData)
-			.then(function(result) {
-				done(result);
-			}, function(err) {
-				err.length.should.eql(1);
+		resolver.userModuleHasMissingDependencies(userModuleSafeMode)
+			.then(
+			function(result) {
+				done(new Error("Should have rejected: " + result));
+			},
+			function(err) {
+				should(err).be.ok;
+				should(err.length).eql(1);
+
+				// show me the module that needs replacing!
 				err[0].func.should.eql('s');
-				err[0].name.should.eql('1');
+				err[0].name.should.eql('2');
 				done();
 			});
 	});
@@ -216,8 +221,11 @@ describe('HalDependencyResolver', function() {
 
 		resolver.userModuleHasMissingDependencies(data)
 			.then(function(result) {
-				result.func.should.eql('s');
-				result.name.should.eql('1');
+				//We shouldn't return anything when we aren't missing anything, right?
+				//otherwise, does this return value have any utility?
+
+//				result.func.should.eql('s');
+//				result.name.should.eql('1');
 				done();
 			}, function(err) {
 				done(err);
@@ -245,5 +253,23 @@ describe('HalDependencyResolver', function() {
 		result.length.should.eql(1);
 		result[0].v.should.eql(2);
 	});
+
+	it('finds missing dependencies for example 1', function(done) {
+		var data = require('./../describes/safe_mode_1.json.js');
+		var resolver = new HalDependencyResolver();
+		var results = resolver.findAnyMissingDependencies(data);
+
+		should(results).be.ok;
+		should(results.length).be.greaterThan(0);
+
+		var dep = results[0];
+
+		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
+		should(dep.f).eql('s');
+		should(dep.n).eql('1');
+		should(dep.v).eql(6);
+
+		done();
+	})
 
 });
