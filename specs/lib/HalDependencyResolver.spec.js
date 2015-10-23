@@ -21,6 +21,7 @@
 var fs = require('fs');
 var path = require('path');
 var should = require('should');
+var extend = require('xtend');
 var when = require('when');
 var pipeline = require('when/pipeline');
 var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
@@ -87,10 +88,12 @@ describe('HalDependencyResolver', function() {
 			v: systemPart2.v + 1
 		};
 
+		var shouldBeMissing = extend(fixedTestData[2], { v: systemPart2.v + 1 });
+
 		var resolver = new HalDependencyResolver();
 		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr.length).eql(1);
-		should(arr[0]).eql(systemPart2);
+		should(arr[0]).eql(shouldBeMissing);
 	});
 
 
@@ -248,10 +251,11 @@ describe('HalDependencyResolver', function() {
 		var result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
 		result.should.eql([]);
 
-		module.dependencies[0].version = 5;
+		var requiredVersion = 5;
+		module.dependencies[0].version = requiredVersion;
 		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
 		result.length.should.eql(1);
-		result[0].v.should.eql(2);
+		result[0].v.should.eql(requiredVersion);
 	});
 
 	it('finds missing dependencies for example 1', function(done) {
@@ -262,12 +266,14 @@ describe('HalDependencyResolver', function() {
 		should(results).be.ok;
 		should(results.length).be.greaterThan(0);
 
+		var shouldBeMissing = data.m[2].d[0];
 		var dep = results[0];
 
+
 		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
-		should(dep.f).eql('s');
-		should(dep.n).eql('1');
-		should(dep.v).eql(6);
+		should(dep.f).eql(shouldBeMissing.f);
+		should(dep.n).eql(shouldBeMissing.n);
+		should(dep.v).eql(shouldBeMissing.v);
 
 		done();
 	})
