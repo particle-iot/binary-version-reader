@@ -202,6 +202,13 @@ describe('HalDependencyResolver', function() {
 		var userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
 		var resolver = new HalDependencyResolver();
 
+		var deps = resolver.findAnyMissingDependencies(userModuleSafeMode);
+		should(deps).be.ok;
+		should(deps.length).eql(1);
+		should(deps[0].f).eql('s');
+		should(deps[0].n).eql('2');
+		should(deps[0].v).eql(8);
+
 		resolver.userModuleHasMissingDependencies(userModuleSafeMode)
 			.then(
 			function(result) {
@@ -214,6 +221,7 @@ describe('HalDependencyResolver', function() {
 				// show me the module that needs replacing!
 				err[0].func.should.eql('s');
 				err[0].name.should.eql('2');
+				err[0].version.should.eql(8);
 				done();
 			});
 	});
@@ -222,16 +230,16 @@ describe('HalDependencyResolver', function() {
 		var data = require('./../describes/fixed_dependencies_describe.json.js');
 		var resolver = new HalDependencyResolver();
 
+
+		var deps = resolver.findAnyMissingDependencies(data);
+		should(deps).be.ok;
+		should(deps.length).eql(0);
+
 		resolver.userModuleHasMissingDependencies(data)
 			.then(function(result) {
-				//We shouldn't return anything when we aren't missing anything, right?
-				//otherwise, does this return value have any utility?
-
-//				result.func.should.eql('s');
-//				result.name.should.eql('1');
 				done();
 			}, function(err) {
-				done(err);
+				done(err || "Should not have rejected");
 			});
 	});
 
