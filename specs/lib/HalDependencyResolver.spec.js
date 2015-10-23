@@ -341,4 +341,28 @@ describe('HalDependencyResolver', function() {
 			});
 	});
 
+	it('handles weird double-safe-mode case', function(done) {
+
+		var describe = require('./../describes/safe_mode_3.json.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(2);
+
+		// since we're processing the modules in listed order, and since I think
+		// they're also sorta in dependency order (part1 comes before part2), I think we're okay here.
+		// there is a small risk of getting into a scenario where we keep trying to update part2,
+		// instead of first sending part1.
+
+		// so when picking an update in the case of multiple dependencies, we should pick the thing that
+		// itself has no dependencies if available.
+
+		done();
+
+
+	});
+
 });
