@@ -284,6 +284,61 @@ describe('HalDependencyResolver', function() {
 		should(dep.v).eql(shouldBeMissing.v);
 
 		done();
-	})
+	});
+
+
+	/**
+	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
+	 */
+	it('handles missing user module appropriately', function(done) {
+
+		var describe = require('./../describes/describe_no_usermodule.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(0);
+
+		// should resolve
+		resolver.userModuleHasMissingDependencies(describe)
+			.then(
+			function(result) {
+				done();
+			},
+			function(err) {
+				done(new Error("Should have resolved: " + err));
+			});
+	});
+
+	/**
+	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
+	 */
+	it('handles missing user module with missing stuff appropriately', function(done) {
+
+		var describe = require('./../describes/describe_no_usermodule2.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(1);
+
+		should(deps[0].f).eql('s');
+		should(deps[0].n).eql('1');
+		should(deps[0].v).eql(3);
+
+		// should resolve without finding anything, because this describe has no usermodule.
+		resolver.userModuleHasMissingDependencies(describe)
+			.then(
+			function(result) {
+				done();
+			},
+			function(err) {
+				done(new Error("Should have resolved: " + err));
+			});
+	});
 
 });
