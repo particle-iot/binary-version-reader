@@ -9,8 +9,6 @@ If you're building firmware on the Particle Platform, you might be curious to se
 Usage
 ===
 
-Something like...
-
 ```
     var Reader = require('binary-version-reader').HalModuleParser;
     var reader = new Reader();
@@ -19,8 +17,10 @@ Something like...
     });
 ```
 
+Example output
+===
+
 ```json
-#potential output
 {
 	"filename": "/.../040_user-part.bin",
 	"fileBuffer": "<Buffer ...>",
@@ -55,5 +55,4 @@ Something like...
 ## Known issues
 
 * missing better documentation / examples
-* support for hal firmware on the core
 * tests for newer platforms as they become available

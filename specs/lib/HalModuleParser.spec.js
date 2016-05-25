@@ -171,6 +171,35 @@ describe('HalModuleParser', function() {
 			}).catch(done);
 	});
 
+	it('should read prefix info from monolithic firmware', function(done) {
+		var filename = path.join(settings.binaries, '../binaries/044_Core_Tinker_P5_V10.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8005000',
+			moduleEndAddy: '801a8e0',
+			moduleVersion: 0,
+			platformID: 0,
+			moduleFunction: 3,
+			moduleIndex: 0,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0 };
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+			function(fileInfo) {
+				//console.log('got user info ', fileInfo.prefixInfo);
+				should(fileInfo).be.ok;
+				should(fileInfo.crc.ok).be.ok;
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+				done();
+			},
+			function(err) {
+				done(err)
+			}).catch(done);
+	});
+
 	it('should read suffix info from system part 1', function(done) {
 		var filename = path.join(settings.binaries, '../binaries/040_system-part1.bin');
 		var expectedSuffixInfo = {
