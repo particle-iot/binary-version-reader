@@ -1,3 +1,17 @@
+## 0.2.4
+
+* fixed a bunch of broken tests
+* modified _walkChain to return module with needed version, not exact module found to be lacking
+* added `findAnyMissingDependencies` to cover safe-modes as a result of non-user modules
+* fixed `userModuleHasMissingDependencies` to use walkChain, fixes some misleading results
+* refactors should also give large performance gains as a side-benefit
+* notes on 
+
+
+## 0.2.3
+
+* fixed `userModuleHasMissingDependencies` to resolve if monolithic describe
+
 ## 0.2.2
 
 * added `solveFirmwareModule` method in `HalDependencyResolver`

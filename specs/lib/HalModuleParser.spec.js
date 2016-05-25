@@ -306,4 +306,34 @@ describe('HalModuleParser', function() {
 			done();
 		});
 	});
+         
+    it('should work with bluz system-part', function(done) {
+       var filename = path.join(settings.binaries, '../binaries/103_system-part1.bin');
+       var expectedPrefixInfo = {
+       moduleStartAddy: '18000',
+       moduleEndAddy: '36768',
+       moduleVersion: 1,
+       platformID: 103,
+       moduleFunction: 4,
+       moduleIndex: 1,
+       depModuleFunction: 0,
+       depModuleIndex: 0,
+       depModuleVersion: 0
+       };
+       
+       var parser = new HalModuleParser();
+       parser.parseFile(filename)
+       .then(
+             function(fileInfo) {
+                 //console.log('got part 2 info ', fileInfo.prefixInfo);
+                 should(fileInfo).be.ok;
+                 should(fileInfo.crc.ok).be.ok;
+                 should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+                 
+                 done();
+             },
+             function(err) {
+                 done(err)
+             }).catch(done);
+    });
 });

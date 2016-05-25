@@ -21,6 +21,7 @@
 var fs = require('fs');
 var path = require('path');
 var should = require('should');
+var extend = require('xtend');
 var when = require('when');
 var pipeline = require('when/pipeline');
 var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
@@ -87,10 +88,12 @@ describe('HalDependencyResolver', function() {
 			v: systemPart2.v + 1
 		};
 
+		var shouldBeMissing = extend(fixedTestData[2], { v: systemPart2.v + 1 });
+
 		var resolver = new HalDependencyResolver();
 		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
 		should(arr.length).eql(1);
-		should(arr[0]).eql(systemPart2);
+		should(arr[0]).eql(shouldBeMissing);
 	});
 
 
@@ -196,16 +199,29 @@ describe('HalDependencyResolver', function() {
 	});
 
 	it('rejects when detects missing dependencies', function(done){
-		var fixedTestData = require('./../describes/fixed_describe.json.js');
+		var userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
 		var resolver = new HalDependencyResolver();
 
-		resolver.userModuleHasMissingDependencies(fixedTestData)
-			.then(function(result) {
-				done(result);
-			}, function(err) {
-				err.length.should.eql(1);
+		var deps = resolver.findAnyMissingDependencies(userModuleSafeMode);
+		should(deps).be.ok;
+		should(deps.length).eql(1);
+		should(deps[0].f).eql('s');
+		should(deps[0].n).eql('2');
+		should(deps[0].v).eql(8);
+
+		resolver.userModuleHasMissingDependencies(userModuleSafeMode)
+			.then(
+			function(result) {
+				done(new Error("Should have rejected: " + result));
+			},
+			function(err) {
+				should(err).be.ok;
+				should(err.length).eql(1);
+
+				// show me the module that needs replacing!
 				err[0].func.should.eql('s');
-				err[0].name.should.eql('1');
+				err[0].name.should.eql('2');
+				err[0].version.should.eql(8);
 				done();
 			});
 	});
@@ -214,13 +230,16 @@ describe('HalDependencyResolver', function() {
 		var data = require('./../describes/fixed_dependencies_describe.json.js');
 		var resolver = new HalDependencyResolver();
 
+
+		var deps = resolver.findAnyMissingDependencies(data);
+		should(deps).be.ok;
+		should(deps.length).eql(0);
+
 		resolver.userModuleHasMissingDependencies(data)
 			.then(function(result) {
-				result.func.should.eql('s');
-				result.name.should.eql('1');
 				done();
 			}, function(err) {
-				done(err);
+				done(err || "Should not have rejected");
 			});
 	});
 
@@ -240,10 +259,110 @@ describe('HalDependencyResolver', function() {
 		var result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
 		result.should.eql([]);
 
-		module.dependencies[0].version = 5;
+		var requiredVersion = 5;
+		module.dependencies[0].version = requiredVersion;
 		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
 		result.length.should.eql(1);
-		result[0].v.should.eql(2);
+		result[0].v.should.eql(requiredVersion);
+	});
+
+	it('finds missing dependencies for example 1', function(done) {
+		var data = require('./../describes/safe_mode_1.json.js');
+		var resolver = new HalDependencyResolver();
+		var results = resolver.findAnyMissingDependencies(data);
+
+		should(results).be.ok;
+		should(results.length).be.greaterThan(0);
+
+		var shouldBeMissing = data.m[2].d[0];
+		var dep = results[0];
+
+
+		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
+		should(dep.f).eql(shouldBeMissing.f);
+		should(dep.n).eql(shouldBeMissing.n);
+		should(dep.v).eql(shouldBeMissing.v);
+
+		done();
+	});
+
+
+	/**
+	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
+	 */
+	it('handles missing user module appropriately', function(done) {
+
+		var describe = require('./../describes/describe_no_usermodule.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(0);
+
+		// should resolve
+		resolver.userModuleHasMissingDependencies(describe)
+			.then(
+			function(result) {
+				done();
+			},
+			function(err) {
+				done(new Error("Should have resolved: " + err));
+			});
+	});
+
+	/**
+	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
+	 */
+	it('handles missing user module with missing stuff appropriately', function(done) {
+
+		var describe = require('./../describes/describe_no_usermodule2.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(1);
+
+		should(deps[0].f).eql('s');
+		should(deps[0].n).eql('1');
+		should(deps[0].v).eql(3);
+
+		// should resolve without finding anything, because this describe has no usermodule.
+		resolver.userModuleHasMissingDependencies(describe)
+			.then(
+			function(result) {
+				done();
+			},
+			function(err) {
+				done(new Error("Should have resolved: " + err));
+			});
+	});
+
+	it('handles weird double-safe-mode case', function(done) {
+
+		var describe = require('./../describes/safe_mode_3.json.js');
+		var resolver = new HalDependencyResolver();
+
+
+		// should have nothing missing
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(2);
+
+		// since we're processing the modules in listed order, and since I think
+		// they're also sorta in dependency order (part1 comes before part2), I think we're okay here.
+		// there is a small risk of getting into a scenario where we keep trying to update part2,
+		// instead of first sending part1.
+
+		// so when picking an update in the case of multiple dependencies, we should pick the thing that
+		// itself has no dependencies if available.
+
+		done();
+
+
 	});
 
 });
