@@ -1,8 +1,13 @@
 {
 	"name": "binary-version-reader",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"main": "main.js",
 	"license": "Apache-2.0",
+	"author": "David Middlecamp",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/spark/binary-version-reader"
+	},
 	"dependencies": {
 		"buffer-crc32": "^0.2.5",
 		"h5.buffers": "^0.1.1",

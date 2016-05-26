@@ -1,3 +1,14 @@
+# Changelog
+
+## 0.4.0
+
+* Add support for Bluz in module parser
+* Add support for Core monolithic firmware in module parser
+
+## 0.3.0
+
+* add describe parser
+
 ## 0.2.4
 
 * fixed a bunch of broken tests
