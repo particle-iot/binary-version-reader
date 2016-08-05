@@ -15,7 +15,7 @@
  */
 
 var fs = require('fs');
-var should = require('should');
+var expect = require('chai').expect;
 
 var FirmwareModule = require('../../lib/FirmwareModule');
 var HalDescribeParser = require('../../lib/HalDescribeParser');
@@ -24,34 +24,36 @@ describe('Describe parser', function() {
 	describe('getModules', function(){
 		it('returns null when describe is incorrect', function(){
 			var parser = new HalDescribeParser();
-			should(parser.getModules()).be.null;
-			should(parser.getModules({})).be.null;
-			should(parser.getModules({m: 'foo'})).be.null;
+			expect(parser.getModules()).be.null;
+			expect(parser.getModules({})).be.null;
+			expect(parser.getModules({m: 'foo'})).be.null;
 		});
 
 		it('returns FirmwareModules from describe', function(){
 			var data = require('./../describes/fixed_dependencies_describe.json.js');
 			var parser = new HalDescribeParser();
 			var results = parser.getModules(data);
-			results.length.should.eql(5);
-			should(results[0] instanceof FirmwareModule).be.true;
+			expect(results).length(5);
+			expect(results[0] instanceof FirmwareModule).be.true;
 		});
 	});
 
 	describe('getSystemVersion', function(){
 		it('returns null when describe is incorrect', function(){
 			var parser = new HalDescribeParser();
-			should(parser.getSystemVersion()).be.null;
-			var data = require('./../describes/describe_one_systemmodule.json.js');
-			should(parser.getSystemVersion(data)).be.null;
-			data = require('./../describes/describe.json.js');
-			should(parser.getSystemVersion(data)).be.null;
+			expect(parser.getSystemVersion()).be.null;
 		});
 
-		it('returns system version', function(){
-			var data = require('./../describes/fixed_dependencies_describe.json.js');
+		it('returns first system module version', function(){
+			var data = require('./../describes/safe_mode_1.json.js');
 			var parser = new HalDescribeParser();
-			parser.getSystemVersion(data).should.eql(2);
+			expect(parser.getSystemVersion(data)).to.equal(6);
+		});
+
+		it('returns system version for three modules', function(){
+			var data = require('./../describes/three_system_modules.json.js');
+			var parser = new HalDescribeParser();
+			expect(parser.getSystemVersion(data)).to.equal(19);
 		});
 	});
 });
