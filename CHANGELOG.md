@@ -1,3 +1,13 @@
+## 0.4.0
+
+* Detect monolithic Core firmware
+* Detect Bluz
+* Get version from just first module to support 3 part Electron firmware
+
+## 0.3.0
+
+* Add parser for describe payload from Photon and Electron
+
 ## 0.2.4
 
 * fixed a bunch of broken tests
