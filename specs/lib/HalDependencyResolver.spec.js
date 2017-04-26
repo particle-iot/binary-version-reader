@@ -365,4 +365,22 @@ describe('HalDependencyResolver', function() {
 
 	});
 
+	it('handles multiple dependencies', function(done) {
+
+		var describe = require('./../describes/multiple_dependencies.json.js');
+		var resolver = new HalDependencyResolver();
+
+
+		var deps = resolver.findAnyMissingDependencies(describe);
+		should(deps).be.ok;
+		should(deps.length).eql(1);
+
+		// The missing dependency is a bootloader
+		var m = describe.m[2].d[1];
+		should(deps[0].f).eql(m.f);
+		should(deps[0].n).eql(m.n);
+		should(deps[0].v).eql(m.v);
+
+		done();
+	});
 });
