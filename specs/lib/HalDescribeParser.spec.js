@@ -55,5 +55,17 @@ describe('Describe parser', function() {
 			var parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(19);
 		});
+
+		it('works with three modules and firmware reset', function(){
+			var data = require('./../describes/three_system_modules_with_firmware_reset.json.js');
+			var parser = new HalDescribeParser();
+			expect(parser.getSystemVersion(data)).to.equal(202);
+			var modules = parser.getModules(data);
+			var restoreModule = modules.filter(function(module){
+				return module.isFactoryLocation();
+			})[0];
+			expect(restoreModule).to.not.be.undefined;
+			expect(restoreModule.version).to.equal(3);
+		});
 	});
 });
