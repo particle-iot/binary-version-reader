@@ -1,3 +1,11 @@
+## 0.5.2
+
+* add `isFactoryLocation` method to `FirmwareModule`
+
+## 0.5.1
+
+* add test case for multiple dependencies
+
 ## 0.5.0
 
 * Get version from just first module to support 3 part Electron firmware
