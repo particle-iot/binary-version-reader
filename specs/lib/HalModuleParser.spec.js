@@ -22,6 +22,8 @@ var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
+var buffers = require('h5.buffers');
+var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
 
@@ -364,5 +366,63 @@ describe('HalModuleParser', function() {
              function(err) {
                  done(err)
              }).catch(done);
+    });
+
+    describe('given a module descriptor', function() {
+		function buildModule(module) {
+			var buffer = BufferOffset.convert(Buffer.alloc(24));
+			return appendModule(buffer, module);
+		}
+
+		function appendModule(buffer, module) {
+			buffer.appendUInt32LE(module.moduleStartAddy);
+			buffer.appendUInt32LE(module.moduleEndAddy);
+			buffer.appendUInt16LE(0);       // reserved
+			buffer.appendUInt16LE(module.moduleVersion);
+			buffer.appendUInt16LE(module.platformID);
+			buffer.appendUInt8(module.moduleFunction);
+			buffer.appendUInt8(module.moduleIndex);
+			appendModuleDependency(buffer, module.depModuleFunction, module.depModuleIndex, module.depModuleVersion);
+			return buffer;
+		}
+
+		function appendModuleDependency(buffer, f, n, v) {
+			buffer.appendUInt8(f);
+			buffer.appendUInt8(n);
+			buffer.appendUInt16LE(v);
+			return buffer;
+		}
+
+	    var buffer;
+
+		var testModule1 = {
+			moduleStartAddy: 0x12345678,
+			moduleEndAddy: 0x87654321,
+			moduleVersion: 1234,
+			platformID: 4567,
+			moduleFunction: 147,
+			moduleIndex: 139,
+			depModuleFunction: 250,
+			depModuleIndex: 251,
+			depModuleVersion: 345
+		};
+
+	    beforeEach(function() {
+			buffer = buildModule(testModule1);
+		});
+
+		describe('when the buffer is parsed', function() {
+			var module;
+			beforeEach(function () {
+				var parser = new HalModuleParser();
+				var prefix = new buffers.BufferReader(buffer.trim());
+				module = parser._parsePrefix(prefix);
+			});
+
+			it('parses the module version as 16-bits LE', function() {
+				should(module).have.property('depModuleVersion').eql(345);
+			});
+		});
+
     });
 });
