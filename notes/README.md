@@ -17,7 +17,7 @@
 
 # internal link
 # TODO: public documentation for this
-https://github.com/spark/firmware/wiki/Retrieving-the-product-deets-from-a-user-application
+https://github.com/particle-iot/firmware/wiki/Retrieving-the-product-deets-from-a-user-application
 
 
 misc scratch notes:
