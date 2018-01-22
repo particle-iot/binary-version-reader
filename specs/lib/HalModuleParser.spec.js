@@ -95,7 +95,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 1,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -125,7 +128,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 2,
 			depModuleFunction: 4,
 			depModuleIndex: 1,
-			depModuleVersion: 1
+			depModuleVersion: 1,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -155,7 +161,11 @@ describe('HalModuleParser', function() {
 			moduleIndex: 1,
 			depModuleFunction: 4,
 			depModuleIndex: 2,
-			depModuleVersion: 1 };
+			depModuleVersion: 1,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
 
 		var parser = new HalModuleParser();
 		parser.parseFile(filename)
@@ -184,7 +194,11 @@ describe('HalModuleParser', function() {
 			moduleIndex: 0,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0 };
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
 
 		var parser = new HalModuleParser();
 		parser.parseFile(filename)
@@ -296,7 +310,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 0,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var expectedSuffixInfo = {
@@ -337,7 +354,7 @@ describe('HalModuleParser', function() {
 			done();
 		});
 	});
-         
+
     it('should work with bluz system-part', function(done) {
        var filename = path.join(settings.binaries, '../binaries/103_system-part1.bin');
        var expectedPrefixInfo = {
@@ -349,9 +366,12 @@ describe('HalModuleParser', function() {
        moduleIndex: 1,
        depModuleFunction: 0,
        depModuleIndex: 0,
-       depModuleVersion: 0
+       depModuleVersion: 0,
+	   dep2ModuleFunction: 0,
+	   dep2ModuleIndex: 0,
+	   dep2ModuleVersion: 0
        };
-       
+
        var parser = new HalModuleParser();
        parser.parseFile(filename)
        .then(
@@ -360,7 +380,7 @@ describe('HalModuleParser', function() {
                  should(fileInfo).be.ok;
                  should(fileInfo.crc.ok).be.ok;
                  should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
-                 
+
                  done();
              },
              function(err) {
@@ -383,6 +403,7 @@ describe('HalModuleParser', function() {
 			buffer.appendUInt8(module.moduleFunction);
 			buffer.appendUInt8(module.moduleIndex);
 			appendModuleDependency(buffer, module.depModuleFunction, module.depModuleIndex, module.depModuleVersion);
+			appendModuleDependency(buffer, module.dep2ModuleFunction, module.dep2ModuleIndex, module.dep2ModuleVersion);
 			return buffer;
 		}
 
@@ -404,7 +425,11 @@ describe('HalModuleParser', function() {
 			moduleIndex: 139,
 			depModuleFunction: 250,
 			depModuleIndex: 251,
-			depModuleVersion: 345
+			depModuleVersion: 345,
+			dep2ModuleFunction: 252,
+			dep2ModuleIndex: 252,
+			dep2ModuleVersion: 3456
+
 		};
 
 	    beforeEach(function() {
@@ -415,13 +440,20 @@ describe('HalModuleParser', function() {
 			var module;
 			beforeEach(function () {
 				var parser = new HalModuleParser();
-				var prefix = new buffers.BufferReader(buffer.trim());
-				module = parser._parsePrefix(prefix);
+				var buf = Buffer.alloc(buffer.length);
+				buffer.copy(buf);
+				parser._divineModulePrefixOffset = function() { return 0; };
+				module = parser._readPrefix(buffer);
 			});
 
 			it('parses the module version as 16-bits LE', function() {
 				should(module).have.property('depModuleVersion').eql(345);
 			});
+
+			it('parses the 2nd module version as 16-bits LE', function() {
+				should(module).have.property('dep2ModuleVersion').eql(3456);
+			});
+
 		});
 
     });
