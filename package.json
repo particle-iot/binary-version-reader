@@ -11,13 +11,14 @@
     "xtend": "^4.0.0"
   },
   "devDependencies": {
+    "buffer-offset": "^0.1.2",
     "coveralls": "^2.11.4",
     "istanbul": "^0.4.0",
     "mocha": "^2.2.5",
     "should": "^6.0.3"
   },
   "scripts": {
-    "test": "mocha -R nyan specs/lib/**",
+    "test": "mocha -R nyan specs/lib/**.js",
     "coveralls": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec specs/lib/** && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
   "bin": {

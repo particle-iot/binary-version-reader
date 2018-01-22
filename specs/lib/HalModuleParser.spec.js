@@ -22,6 +22,8 @@ var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
+var buffers = require('h5.buffers');
+var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
 
@@ -93,7 +95,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 1,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -123,7 +128,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 2,
 			depModuleFunction: 4,
 			depModuleIndex: 1,
-			depModuleVersion: 1
+			depModuleVersion: 1,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -153,7 +161,11 @@ describe('HalModuleParser', function() {
 			moduleIndex: 1,
 			depModuleFunction: 4,
 			depModuleIndex: 2,
-			depModuleVersion: 1 };
+			depModuleVersion: 1,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
 
 		var parser = new HalModuleParser();
 		parser.parseFile(filename)
@@ -182,7 +194,11 @@ describe('HalModuleParser', function() {
 			moduleIndex: 0,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0 };
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
 
 		var parser = new HalModuleParser();
 		parser.parseFile(filename)
@@ -294,7 +310,10 @@ describe('HalModuleParser', function() {
 			moduleIndex: 0,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
-			depModuleVersion: 0
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
 		};
 
 		var expectedSuffixInfo = {
@@ -335,7 +354,7 @@ describe('HalModuleParser', function() {
 			done();
 		});
 	});
-         
+
     it('should work with bluz system-part', function(done) {
        var filename = path.join(settings.binaries, '../binaries/103_system-part1.bin');
        var expectedPrefixInfo = {
@@ -347,9 +366,12 @@ describe('HalModuleParser', function() {
        moduleIndex: 1,
        depModuleFunction: 0,
        depModuleIndex: 0,
-       depModuleVersion: 0
+       depModuleVersion: 0,
+	   dep2ModuleFunction: 0,
+	   dep2ModuleIndex: 0,
+	   dep2ModuleVersion: 0
        };
-       
+
        var parser = new HalModuleParser();
        parser.parseFile(filename)
        .then(
@@ -358,11 +380,81 @@ describe('HalModuleParser', function() {
                  should(fileInfo).be.ok;
                  should(fileInfo.crc.ok).be.ok;
                  should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
-                 
+
                  done();
              },
              function(err) {
                  done(err)
              }).catch(done);
+    });
+
+    describe('given a module descriptor', function() {
+		function buildModule(module) {
+			var buffer = BufferOffset.convert(Buffer.alloc(24));
+			return appendModule(buffer, module);
+		}
+
+		function appendModule(buffer, module) {
+			buffer.appendUInt32LE(module.moduleStartAddy);
+			buffer.appendUInt32LE(module.moduleEndAddy);
+			buffer.appendUInt16LE(0);       // reserved
+			buffer.appendUInt16LE(module.moduleVersion);
+			buffer.appendUInt16LE(module.platformID);
+			buffer.appendUInt8(module.moduleFunction);
+			buffer.appendUInt8(module.moduleIndex);
+			appendModuleDependency(buffer, module.depModuleFunction, module.depModuleIndex, module.depModuleVersion);
+			appendModuleDependency(buffer, module.dep2ModuleFunction, module.dep2ModuleIndex, module.dep2ModuleVersion);
+			return buffer;
+		}
+
+		function appendModuleDependency(buffer, f, n, v) {
+			buffer.appendUInt8(f);
+			buffer.appendUInt8(n);
+			buffer.appendUInt16LE(v);
+			return buffer;
+		}
+
+	    var buffer;
+
+		var testModule1 = {
+			moduleStartAddy: 0x12345678,
+			moduleEndAddy: 0x87654321,
+			moduleVersion: 1234,
+			platformID: 4567,
+			moduleFunction: 147,
+			moduleIndex: 139,
+			depModuleFunction: 250,
+			depModuleIndex: 251,
+			depModuleVersion: 345,
+			dep2ModuleFunction: 252,
+			dep2ModuleIndex: 252,
+			dep2ModuleVersion: 3456
+
+		};
+
+	    beforeEach(function() {
+			buffer = buildModule(testModule1);
+		});
+
+		describe('when the buffer is parsed', function() {
+			var module;
+			beforeEach(function () {
+				var parser = new HalModuleParser();
+				var buf = Buffer.alloc(buffer.length);
+				buffer.copy(buf);
+				parser._divineModulePrefixOffset = function() { return 0; };
+				module = parser._readPrefix(buffer);
+			});
+
+			it('parses the module version as 16-bits LE', function() {
+				should(module).have.property('depModuleVersion').eql(345);
+			});
+
+			it('parses the 2nd module version as 16-bits LE', function() {
+				should(module).have.property('dep2ModuleVersion').eql(3456);
+			});
+
+		});
+
     });
 });
