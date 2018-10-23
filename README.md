@@ -9,7 +9,7 @@ If you're building firmware on the Particle Platform, you might be curious to se
 Usage
 ===
 
-```
+```js
     var Reader = require('binary-version-reader').HalModuleParser;
     var reader = new Reader();
     reader.parseFile('your_binary.bin', function(fileInfo, err) {
