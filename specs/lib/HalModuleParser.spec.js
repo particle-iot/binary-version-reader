@@ -453,6 +453,39 @@ describe('HalModuleParser', function () {
 				}).catch(done);
 	});
 
+
+	it('should work with xenon bootloader', function (done) {
+		var filename = path.join(settings.binaries, '../binaries/080_bootloader-xenon.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: 'f4000',
+			moduleEndAddy: 'fc164',
+			moduleVersion: 211,
+			platformID: 14,
+			moduleFunction: 2,
+			moduleIndex: 0,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo).be.ok;
+					should(fileInfo.crc.ok).be.ok;
+					should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
+	});
+
 	describe('given a module descriptor', function () {
 		function buildModule(module) {
 			var buffer = BufferOffset.convert(Buffer.alloc(24));
