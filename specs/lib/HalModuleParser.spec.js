@@ -31,8 +31,6 @@ var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
-//console.log('binaries dir is ' + settings.binaries);
-
 
 describe('HalModuleParser', function () {
 	it('should fail gracefully when the file doesn\'t exist or is empty', function (done) {
@@ -46,7 +44,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should succeed when the file exists', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var filename = path.join(settings.binaries, '040_system-part1.bin');
 		var parser = new HalModuleParser();
 		parser._loadFile(filename)
 			.then(
@@ -57,7 +55,7 @@ describe('HalModuleParser', function () {
 
 
 	it('should validate the CRC in the binary', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var filename = path.join(settings.binaries, '040_system-part1.bin');
 		var parser = new HalModuleParser();
 
 		pipeline([
@@ -85,7 +83,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read prefix info from part 1', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var filename = path.join(settings.binaries, '040_system-part1.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8020000',
 			moduleEndAddy: '805cba4',
@@ -118,7 +116,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read prefix info from part 2', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part2.bin');
+		var filename = path.join(settings.binaries, '040_system-part2.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8060000',
 			moduleEndAddy: '807e954',
@@ -151,7 +149,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read prefix info from a user module', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_user-part.bin');
+		var filename = path.join(settings.binaries, '040_user-part.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '80a0000',
 			moduleEndAddy: '80a128c',
@@ -184,7 +182,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read prefix info from monolithic firmware', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/044_Core_Tinker_P5_V10.bin');
+		var filename = path.join(settings.binaries, '044_Core_Tinker_P5_V10.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8005000',
 			moduleEndAddy: '801a8e0',
@@ -217,7 +215,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read suffix info from system part 1', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		var filename = path.join(settings.binaries, '040_system-part1.bin');
 		var expectedSuffixInfo = {
 			productId: -1,
 			productVersion: -1,
@@ -244,7 +242,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should read suffix info from system part 2', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_system-part2.bin');
+		var filename = path.join(settings.binaries, '040_system-part2.bin');
 		var expectedSuffixInfo = {
 			productId: -1,
 			productVersion: -1,
@@ -272,7 +270,7 @@ describe('HalModuleParser', function () {
 
 
 	it('should read suffix info from the user part', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_user-part.bin');
+		var filename = path.join(settings.binaries, '040_user-part.bin');
 		var expectedSuffixInfo = {
 			productId: -1,
 			productVersion: -1,
@@ -300,7 +298,7 @@ describe('HalModuleParser', function () {
 
 
 	it('should read info from a bootloader module', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/RC4_bootloader_pad_BM-09.bin');
+		var filename = path.join(settings.binaries, 'RC4_bootloader_pad_BM-09.bin');
 
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8000000',
@@ -347,7 +345,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should have a working example', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/040_user-part.bin');
+		var filename = path.join(settings.binaries, '040_user-part.bin');
 		var Reader = require('../../main.js').HalModuleParser;
 		var reader = new Reader();
 		reader.parseFile(filename, function (fileInfo, err) {
@@ -357,7 +355,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should work with bluz system-part', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/103_system-part1.bin');
+		var filename = path.join(settings.binaries, '103_system-part1.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '18000',
 			moduleEndAddy: '36768',
@@ -390,7 +388,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should work with xenon system part', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/080_system-part1-xenon.bin');
+		var filename = path.join(settings.binaries, '080_system-part1-xenon.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'c7580',
@@ -422,7 +420,7 @@ describe('HalModuleParser', function () {
 	});
 
 	it('should work with xenon user part', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/080_user-part-xenon.bin');
+		var filename = path.join(settings.binaries, '080_user-part-xenon.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'd4000',
 			moduleEndAddy: 'd4cec',
@@ -453,15 +451,46 @@ describe('HalModuleParser', function () {
 				}).catch(done);
 	});
 
-
 	it('should work with xenon bootloader', function (done) {
-		var filename = path.join(settings.binaries, '../binaries/080_bootloader-xenon.bin');
+		var filename = path.join(settings.binaries, '080_bootloader-xenon.bin');
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'f4000',
 			moduleEndAddy: 'fc164',
 			moduleVersion: 211,
 			platformID: 14,
 			moduleFunction: 2,
+			moduleIndex: 0,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo).be.ok;
+					should(fileInfo.crc.ok).be.ok;
+					should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
+	});
+
+	it('should work with argon ncp', function (done) {
+		var filename = path.join(settings.binaries, 'argon-ncp-firmware-0.0.5-ota.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '0',
+			moduleEndAddy: 'ca73c',
+			moduleVersion: 5,
+			platformID: 12,
+			moduleFunction: 7,
 			moduleIndex: 0,
 			depModuleFunction: 0,
 			depModuleIndex: 0,
