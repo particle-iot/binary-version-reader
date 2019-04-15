@@ -515,6 +515,39 @@ describe('HalModuleParser', function () {
 				}).catch(done);
 	});
 
+	it('should work with boron-som system part', function (done) {
+		var filename = path.join(settings.binaries, 'boron-som-system-part1@1.1.0-rc.1.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '30000',
+			moduleEndAddy: 'ce668',
+			moduleVersion: 1100,
+			platformID: 23,
+			moduleFunction: 4,
+			moduleIndex: 1,
+			depModuleFunction: 2,
+			depModuleIndex: 0,
+			depModuleVersion: 201,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0,
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo).be.ok;
+					should(fileInfo.crc.ok).be.ok;
+					should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
+	});
+
+
 	describe('given a module descriptor', function () {
 		function buildModule(module) {
 			var buffer = BufferOffset.convert(Buffer.alloc(24));
