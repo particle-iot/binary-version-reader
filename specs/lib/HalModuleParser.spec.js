@@ -87,6 +87,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8020000',
 			moduleEndAddy: '805cba4',
+			moduleFlags: 0,
 			moduleVersion: 1,
 			platformID: 6,
 			moduleFunction: 4,
@@ -120,6 +121,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8060000',
 			moduleEndAddy: '807e954',
+			moduleFlags: 0,
 			moduleVersion: 1,
 			platformID: 6,
 			moduleFunction: 4,
@@ -153,6 +155,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '80a0000',
 			moduleEndAddy: '80a128c',
+			moduleFlags: 0,
 			moduleVersion: 2,
 			platformID: 6,
 			moduleFunction: 5,
@@ -186,6 +189,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8005000',
 			moduleEndAddy: '801a8e0',
+			moduleFlags: 0,
 			moduleVersion: 0,
 			platformID: 0,
 			moduleFunction: 3,
@@ -303,6 +307,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8000000',
 			moduleEndAddy: '8003f98',
+			moduleFlags: 0,
 			moduleVersion: 2,
 			platformID: 6,
 			moduleFunction: 2,
@@ -359,6 +364,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '18000',
 			moduleEndAddy: '36768',
+			moduleFlags: 0,
 			moduleVersion: 1,
 			platformID: 103,
 			moduleFunction: 4,
@@ -392,6 +398,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'c7580',
+			moduleFlags: 0,
 			moduleVersion: 312,
 			platformID: 14,
 			moduleFunction: 4,
@@ -424,6 +431,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'd4000',
 			moduleEndAddy: 'd4cec',
+			moduleFlags: 0,
 			moduleVersion: 5,
 			platformID: 14,
 			moduleFunction: 5,
@@ -456,6 +464,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'f4000',
 			moduleEndAddy: 'fc164',
+			moduleFlags: 0,
 			moduleVersion: 211,
 			platformID: 14,
 			moduleFunction: 2,
@@ -488,6 +497,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '0',
 			moduleEndAddy: 'ca73c',
+			moduleFlags: 0,
 			moduleVersion: 5,
 			platformID: 12,
 			moduleFunction: 7,
@@ -520,6 +530,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'ce668',
+			moduleFlags: 0,
 			moduleVersion: 1100,
 			platformID: 23,
 			moduleFunction: 4,
@@ -547,6 +558,38 @@ describe('HalModuleParser', function () {
 				}).catch(done);
 	});
 
+	it('should work with argon softdevice (radio stack)', function (done) {
+		var filename = path.join(settings.binaries, 'argon-softdevice-6.1.1.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '1000',
+			moduleEndAddy: '25e24',
+			moduleFlags: 1,
+			moduleVersion: 182,
+			platformID: 12,
+			moduleFunction: 8,
+			moduleIndex: 0,
+			depModuleFunction: 4,
+			depModuleIndex: 1,
+			depModuleVersion: 1300,
+			dep2ModuleFunction: 2,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 311
+		};
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo).be.ok;
+					should(fileInfo.crc.ok).be.ok;
+					should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
+	});
 
 	describe('given a module descriptor', function () {
 		function buildModule(module) {
@@ -579,6 +622,7 @@ describe('HalModuleParser', function () {
 		var testModule1 = {
 			moduleStartAddy: 0x12345678,
 			moduleEndAddy: 0x87654321,
+			moduleFlags: 0,
 			moduleVersion: 1234,
 			platformID: 4567,
 			moduleFunction: 147,
