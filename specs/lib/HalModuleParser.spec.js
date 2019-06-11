@@ -567,12 +567,12 @@ describe('HalModuleParser', function () {
 			moduleFlags: ModuleInfo.Flags.DROP_MODULE_INFO,
 			moduleVersion: 182,
 			platformID: ModuleInfo.Platform.ARGON,
-			moduleFunction: ModuleInfo.Function.RADIO_STACK,
+			moduleFunction: ModuleInfo.FunctionType.RADIO_STACK,
 			moduleIndex: 0,
-			depModuleFunction: ModuleInfo.Function.SYSTEM_PART,
+			depModuleFunction: ModuleInfo.FunctionType.SYSTEM_PART,
 			depModuleIndex: 1,
 			depModuleVersion: 1300,
-			dep2ModuleFunction: ModuleInfo.Function.BOOTLOADER,
+			dep2ModuleFunction: ModuleInfo.FunctionType.BOOTLOADER,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 311
 		};
