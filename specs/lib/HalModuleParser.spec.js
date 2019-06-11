@@ -26,6 +26,7 @@ var buffers = require('h5.buffers');
 var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
+const ModuleInfo = require('../../lib/ModuleInfo.js');
 
 var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
@@ -87,7 +88,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8020000',
 			moduleEndAddy: '805cba4',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 6,
 			moduleFunction: 4,
@@ -121,7 +122,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8060000',
 			moduleEndAddy: '807e954',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 6,
 			moduleFunction: 4,
@@ -155,7 +156,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '80a0000',
 			moduleEndAddy: '80a128c',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 2,
 			platformID: 6,
 			moduleFunction: 5,
@@ -189,7 +190,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8005000',
 			moduleEndAddy: '801a8e0',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 0,
 			platformID: 0,
 			moduleFunction: 3,
@@ -307,7 +308,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8000000',
 			moduleEndAddy: '8003f98',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 2,
 			platformID: 6,
 			moduleFunction: 2,
@@ -364,7 +365,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '18000',
 			moduleEndAddy: '36768',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 103,
 			moduleFunction: 4,
@@ -398,7 +399,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'c7580',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 312,
 			platformID: 14,
 			moduleFunction: 4,
@@ -431,7 +432,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'd4000',
 			moduleEndAddy: 'd4cec',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 5,
 			platformID: 14,
 			moduleFunction: 5,
@@ -464,7 +465,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'f4000',
 			moduleEndAddy: 'fc164',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 211,
 			platformID: 14,
 			moduleFunction: 2,
@@ -497,7 +498,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '0',
 			moduleEndAddy: 'ca73c',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 5,
 			platformID: 12,
 			moduleFunction: 7,
@@ -530,7 +531,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'ce668',
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1100,
 			platformID: 23,
 			moduleFunction: 4,
@@ -563,15 +564,15 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '1000',
 			moduleEndAddy: '25e24',
-			moduleFlags: 1,
+			moduleFlags: ModuleInfo.Flags.DROP_MODULE_INFO,
 			moduleVersion: 182,
-			platformID: 12,
-			moduleFunction: 8,
+			platformID: ModuleInfo.Platform.ARGON,
+			moduleFunction: ModuleInfo.Function.RADIO_STACK,
 			moduleIndex: 0,
-			depModuleFunction: 4,
+			depModuleFunction: ModuleInfo.Function.SYSTEM_PART,
 			depModuleIndex: 1,
 			depModuleVersion: 1300,
-			dep2ModuleFunction: 2,
+			dep2ModuleFunction: ModuleInfo.Function.BOOTLOADER,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 311
 		};
@@ -622,7 +623,7 @@ describe('HalModuleParser', function () {
 		var testModule1 = {
 			moduleStartAddy: 0x12345678,
 			moduleEndAddy: 0x87654321,
-			moduleFlags: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1234,
 			platformID: 4567,
 			moduleFunction: 147,
