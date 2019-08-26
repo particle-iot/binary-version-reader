@@ -1,7 +1,7 @@
 var should = require('should');
 var FirmwareModule = require('../../lib/FirmwareModule');
 
-var message = {
+const message = {
 	s: 131072,
 	l: "m",
 	vc: 30,
@@ -11,6 +11,31 @@ var message = {
 	n: "1",
 	v: 3,
 	d: [
+		{
+			f: "s",
+			n: "2",
+			v: 5,
+			_: ""
+		}
+	]
+};
+
+const messageMultipleDependencies = {
+	s: 131072,
+	l: "m",
+	vc: 30,
+	vv: 30,
+	u: "7F2F2B5C5A4F40D9844D109B7FBD730BF2237C252EF03ED5075CEB9901AF985E",
+	f: "u",
+	n: "1",
+	v: 3,
+	d: [
+		{
+			f: "s",
+			n: "1",
+			v: 5,
+			_: ""
+		},
 		{
 			f: "s",
 			n: "2",
@@ -97,6 +122,23 @@ describe('FirmwareModule', function(){
 		module.dependencies[0].version = 2;
 
 		var result = module.areDependenciesMet(data.m);
+		result.should.eql(true);
+	});
+
+	it('should return dependency resolution status for multiple dependencies', function(){
+		const module = new FirmwareModule(messageMultipleDependencies);
+
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		let result = module.areDependenciesMet(data.m);
+		result.should.eql(false);
+
+		module.dependencies[0].version = 2;
+		result = module.areDependenciesMet(data.m);
+		result.should.eql(false);
+
+		module.dependencies[1].version = 2;
+		result = module.areDependenciesMet(data.m);
 		result.should.eql(true);
 	});
 });
