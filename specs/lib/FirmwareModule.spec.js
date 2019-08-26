@@ -1,3 +1,4 @@
+'use strict';
 var should = require('should');
 var FirmwareModule = require('../../lib/FirmwareModule');
 const ModuleInfo = require('../../lib/ModuleInfo');
