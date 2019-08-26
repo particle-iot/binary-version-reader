@@ -1,5 +1,6 @@
 var should = require('should');
 var FirmwareModule = require('../../lib/FirmwareModule');
+const ModuleInfo = require('../../lib/ModuleInfo');
 
 const message = {
 	s: 131072,
@@ -138,6 +139,23 @@ describe('FirmwareModule', function(){
 		result.should.eql(false);
 
 		module.dependencies[1].version = 2;
+		result = module.areDependenciesMet(data.m);
+		result.should.eql(true);
+	});
+
+	it('should return dependency resolution status with module function "none"', function(){
+		const module = new FirmwareModule(messageMultipleDependencies);
+
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		let result = module.areDependenciesMet(data.m);
+		result.should.eql(false);
+
+		module.dependencies[0].func = ModuleInfo.FunctionChar.NONE;
+		result = module.areDependenciesMet(data.m);
+		result.should.eql(false);
+
+		module.dependencies[1].func = ModuleInfo.FunctionChar.NONE;
 		result = module.areDependenciesMet(data.m);
 		result.should.eql(true);
 	});
