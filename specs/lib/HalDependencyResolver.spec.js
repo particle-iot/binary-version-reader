@@ -88,7 +88,7 @@ describe('HalDependencyResolver', function() {
 			v: systemPart2.v + 1
 		};
 
-		var shouldBeMissing = extend(fixedTestData[2], { v: systemPart2.v + 1 });
+		var shouldBeMissing = extend(fixedTestData[2], { v: systemPart2.v + 1, d: [] });
 
 		var resolver = new HalDependencyResolver();
 		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
