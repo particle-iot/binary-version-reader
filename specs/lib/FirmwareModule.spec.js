@@ -1,27 +1,12 @@
+'use strict';
 var should = require('should');
 var FirmwareModule = require('../../lib/FirmwareModule');
-
-var message = {
-	s: 131072,
-	l: "m",
-	vc: 30,
-	vv: 30,
-	u: "7F2F2B5C5A4F40D9844D109B7FBD730BF2237C252EF03ED5075CEB9901AF985E",
-	f: "u",
-	n: "1",
-	v: 3,
-	d: [
-		{
-			f: "s",
-			n: "2",
-			v: 5,
-			_: ""
-		}
-	]
-};
+const ModuleInfo = require('../../lib/ModuleInfo');
+const testModules = require('./../describes/modules.json.js');
 
 describe('FirmwareModule', function(){
 	it('should parse describe message', function(){
+		const message = testModules.message;
 		var module = new FirmwareModule(message);
 		module.uuid.should.eql(message.u);
 		module.func.should.eql(message.f);
@@ -74,6 +59,7 @@ describe('FirmwareModule', function(){
 	});
 
 	it('should return describe like object', function(){
+		const message = testModules.message;
 		var module = new FirmwareModule(message);
 		var describe = module.toDescribe();
 		describe.u.should.eql(describe.u);
@@ -88,15 +74,80 @@ describe('FirmwareModule', function(){
 	});
 
 	it('should return dependency resolution status', function(){
+		const message = testModules.message;
 		var module = new FirmwareModule(message);
 		var data = require('./../describes/fixed_dependencies_describe.json.js');
 
-		var result = module.areDependenciesMet(data.m);
+		let unmet = [];
+		var result = module.areDependenciesMet(data.m, unmet);
 		result.should.eql(false);
+		unmet.should.have.lengthOf(1);
 
 		module.dependencies[0].version = 2;
 
-		var result = module.areDependenciesMet(data.m);
+		unmet = [];
+		var result = module.areDependenciesMet(data.m, unmet);
 		result.should.eql(true);
+		unmet.should.have.lengthOf(0);
+	});
+
+	it('should return dependency resolution status for multiple dependencies', function(){
+		const message = testModules.messageMultipleDependencies;
+		const module = new FirmwareModule(message);
+
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		let unmet = [];
+		let result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(false);
+		unmet.should.have.lengthOf(2);
+
+		module.dependencies[0].version = 2;
+		unmet = [];
+		result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(false);
+		unmet.should.have.lengthOf(1);
+
+		module.dependencies[1].version = 2;
+		unmet = [];
+		result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(true);
+		unmet.should.have.lengthOf(0);
+	});
+
+	it('should return dependency resolution status with module function "none"', function(){
+		const message = testModules.messageMultipleDependencies;
+		const module = new FirmwareModule(message);
+
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		let unmet = [];
+		let result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(false);
+		unmet.should.have.lengthOf(2);
+
+		module.dependencies[0].func = ModuleInfo.FunctionChar.NONE;
+		unmet = [];
+		result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(false);
+		unmet.should.have.lengthOf(1);
+
+		module.dependencies[1].func = ModuleInfo.FunctionChar.NONE;
+		unmet = [];
+		result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(true);
+		unmet.should.have.lengthOf(0);
+	});
+
+	it('should return dependency resolution status when dependency is not present in device describe', function(){
+		const message = testModules.messageWithDependencyNotInDeviceDescribe;
+		const module = new FirmwareModule(message);
+
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+
+		const unmet = [];
+		let result = module.areDependenciesMet(data.m, unmet);
+		result.should.eql(false);
+		unmet.should.have.lengthOf(1);
 	});
 });
