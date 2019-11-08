@@ -18,8 +18,8 @@
     "should": "^6.0.3"
   },
   "scripts": {
-    "test": "mocha -R spec specs/lib/**.js",
-    "coveralls": "nyc cover mocha --report lcovonly -- -R spec specs/lib/** && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "test": "nyc --reporter=text mocha -R spec specs/lib/**.js",
+    "coverage": "nyc report --reporter=text-lcov | coveralls && rm -rf ./.nyc_output"
   },
   "bin": {
     "pmod": "bin/pmod.js"
