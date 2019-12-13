@@ -6,7 +6,6 @@
   "dependencies": {
     "buffer-crc32": "^0.2.5",
     "h5.buffers": "^0.1.1",
-    "nyc": "^14.1.1",
     "when": "^3.7.3",
     "xtend": "^4.0.2"
   },
@@ -15,6 +14,7 @@
     "chai": "^3.5.0",
     "coveralls": "^3.0.7",
     "mocha": "^2.5.3",
+    "nyc": "^14.1.1",
     "should": "^6.0.3"
   },
   "scripts": {
