@@ -1,3 +1,4 @@
+'use strict';
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -26,6 +27,7 @@ var when = require('when');
 var pipeline = require('when/pipeline');
 var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
 var FirmwareModule = require('../../lib/FirmwareModule');
+var expect = require('chai').expect;
 
 var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
@@ -383,4 +385,50 @@ describe('HalDependencyResolver', function() {
 
 		done();
 	});
+
+
+	describe('factory image', () => {
+		function hasMissingDependencies(describe) {
+			const modules = new HalDependencyResolver().findAnyMissingDependencies(describe);
+			return modules && modules.length > 0;
+		}
+
+		it('does not report safe mode for factory modules that are invalid', () => {
+
+			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':0,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+
+			expect(hasMissingDependencies(describe)).to.be.eql(false);
+		});
+
+		it('does not report safe mode for factory modules that are invalid', () => {
+
+			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':0,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+
+			expect(hasMissingDependencies(describe)).to.be.eql(false);
+		});
+
+		it('does not report safe mode for factory modules that are valid', () => {
+
+			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':30,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+
+			expect(hasMissingDependencies(describe)).to.be.eql(false);
+		});
+
+
+		it('does not report safe mode for no missing dependencies', () => {
+
+			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] }] };
+
+			expect(hasMissingDependencies(describe)).to.be.eql(false);
+		});
+
+		it('reports safe mode for missing application dependencies', () => {
+
+			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':9999,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] }] };
+
+			expect(hasMissingDependencies(describe)).to.be.eql(true);
+		});
+
+	});
+
 });
