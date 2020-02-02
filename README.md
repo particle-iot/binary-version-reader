@@ -52,7 +52,7 @@ Example output
 ```
 
 
-## Known issues
+## Testing firmware binaries
 
-* missing better documentation / examples
-* tests for newer platforms as they become available
+TODO document createFimwareBinary
+

@@ -1,9 +1,9 @@
 'use strict';
 const expect = require('chai').expect;
-const testHelpers = require('../../lib/testHelpers');
+const firmwareTestHelper = require('../../lib/firmwareTestHelper');
 const HalModuleParser = require('../../lib/HalModuleParser');
 
-describe('testHelpers', function() {
+describe('firmwareTestHelper', function() {
 	describe('createFirmwareBinary', function() {
 		it('creates a valid user part', function() {
 			const productId = 42;
@@ -11,7 +11,7 @@ describe('testHelpers', function() {
 			const platformId = 6;
 			const depModuleVersion = 1234;
 
-			const binary = testHelpers.createFirmwareBinary({ productId, productVersion, platformId, depModuleVersion });
+			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, depModuleVersion });
 
 			const parser = new HalModuleParser();
 			return parser.parseBuffer({ fileBuffer: binary }).then((fileInfo) => {

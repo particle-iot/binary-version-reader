@@ -24,5 +24,5 @@ module.exports = {
   HalDependencyResolver: require('./lib/HalDependencyResolver.js'),
   FirmwareModule: require('./lib/FirmwareModule.js'),
   ModuleInfo: require('./lib/ModuleInfo.js'),
-  testHelpers: require('./lib/testHelpers')
+  firmwareTestHelper: require('./lib/firmwareTestHelper')
 };
