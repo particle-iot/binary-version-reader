@@ -3,18 +3,24 @@ The Particle Binary Version Reader!
 
 If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware!  This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
 
-[![Build Status](https://travis-ci.org/spark/binary-version-reader.svg?branch=master)](https://travis-ci.org/spark/binary-version-reader)
+[![Build Status](https://travis-ci.org/particle-iot/binary-version-reader.svg?branch=master)](https://travis-ci.org/particle-iot/binary-version-reader)
 
 
 Usage
 ===
 
 ```js
-    var Reader = require('binary-version-reader').HalModuleParser;
-    var reader = new Reader();
+    const Reader = require('binary-version-reader').HalModuleParser;
+    const reader = new Reader();
     reader.parseFile('your_binary.bin', function(fileInfo, err) {
         console.log(fileInfo);
     });
+```
+
+You can also get the raw output of binary-version-reader by using it as a command line tool without installing it.
+
+```
+npx binary-version-reader your_binary.bin
 ```
 
 Example output
@@ -54,5 +60,12 @@ Example output
 
 ## Testing firmware binaries
 
-TODO document createFimwareBinary
+When you need to create a firmware binary for an integration test, you
+can use the provided `firmwareTestHelper` instead of relying on fixtures
+in your application.
+
+```
+const firmwareTestHelper = require('binary-version-reader');
+const binary = firmwareTestHelper.createFirmwareBinary({ productId: 123, productVersion: 6, platformId: 10, depModuleVersion: 1210 });
+```
 
