@@ -688,4 +688,20 @@ describe('HalModuleParser', function () {
 		});
 
 	});
+
+	it('parses extended product id', function (done) {
+		var filename = path.join(settings.binaries, 'extended-product-id.bin');
+
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo.suffixInfo.productId).eql(0xCCDDAABB);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
+	});
 });
