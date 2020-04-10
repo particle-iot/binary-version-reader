@@ -54,40 +54,40 @@ describe('moduleEncoding', () => {
 		it('can update prefix fields selectively', async () => {
 			const bin = genModuleBinary();
 			let prefixInfo = {
-		    moduleStartAddy: 0x44332211,
-		    // moduleEndAddy: 0x88776655,
-		    reserved: 0x99,
-		    // moduleFlags: 0xaa,
-		    moduleVersion: 0xccbb,
-		    // platformID: 0xeedd,
-		    moduleFunction: 0xff,
-		    // moduleIndex: 0x11,
-		    depModuleFunction: 0x22,
-		    // depModuleIndex: 0x33,
-		    depModuleVersion: 0x5544,
-		    // dep2ModuleFunction: 0x66,
-		    dep2ModuleIndex: 0x77,
-		    // dep2ModuleVersion: 0x9988
+				moduleStartAddy: 0x44332211,
+				// moduleEndAddy: 0x88776655,
+				reserved: 0x99,
+				// moduleFlags: 0xaa,
+				moduleVersion: 0xccbb,
+				// platformID: 0xeedd,
+				moduleFunction: 0xff,
+				// moduleIndex: 0x11,
+				depModuleFunction: 0x22,
+				// depModuleIndex: 0x33,
+				depModuleVersion: 0x5544,
+				// dep2ModuleFunction: 0x66,
+				dep2ModuleIndex: 0x77,
+				// dep2ModuleVersion: 0x9988
 			};
 			bin.fill(0, 0, MODULE_PREFIX_SIZE);
 			updateModulePrefix(bin, prefixInfo);
 			let d = bin.slice(0, MODULE_PREFIX_SIZE);
 			expect(d.toString('hex')).to.equal('11223344000000009900bbcc0000ff002200445500770000');
 			prefixInfo = {
-		    // moduleStartAddy: 0x44332211,
-		    moduleEndAddy: 0x88776655,
-		    // reserved: 0x99,
-		    moduleFlags: 0xaa,
-		    // moduleVersion: 0xccbb,
-		    platformID: 0xeedd,
-		    // moduleFunction: 0xff,
-		    moduleIndex: 0x11,
-		    // depModuleFunction: 0x22,
-		    depModuleIndex: 0x33,
-		    // depModuleVersion: 0x5544,
-		    dep2ModuleFunction: 0x66,
-		    // dep2ModuleIndex: 0x77,
-		    dep2ModuleVersion: 0x9988
+				// moduleStartAddy: 0x44332211,
+				moduleEndAddy: 0x88776655,
+				// reserved: 0x99,
+				moduleFlags: 0xaa,
+				// moduleVersion: 0xccbb,
+				platformID: 0xeedd,
+				// moduleFunction: 0xff,
+				moduleIndex: 0x11,
+				// depModuleFunction: 0x22,
+				depModuleIndex: 0x33,
+				// depModuleVersion: 0x5544,
+				dep2ModuleFunction: 0x66,
+				// dep2ModuleIndex: 0x77,
+				dep2ModuleVersion: 0x9988
 			};
 			bin.fill(0, 0, MODULE_PREFIX_SIZE);
 			updateModulePrefix(bin, prefixInfo);
