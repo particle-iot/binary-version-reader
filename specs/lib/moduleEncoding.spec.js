@@ -4,7 +4,9 @@ const {
 	updateModulePrefix,
 	updateModuleSuffix,
 	compressModule,
-	decompressModule
+	decompressModule,
+	combineModules,
+	splitCombinedModules
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -162,14 +164,62 @@ describe('moduleEncoding', () => {
 		});
 	});
 
-	describe('compressModule() / decompressModule()', () => {
-		it('compress and decompress test module binaries', async () => {
+	describe('compressModule() and decompressModule()', () => {
+		it('compress and decompress test module binaries successfully', async () => {
 			for (let file of TEST_BINARIES) {
-				const origBin = fs.readFileSync(file);
-				const compBin = await compressModule(origBin);
-				expect(compBin.length).to.be.lessThan(origBin.length);
-				const decompBin = await decompressModule(compBin);
-				expect(decompBin.equals(origBin)).to.be.true;
+				const orig = fs.readFileSync(file);
+				const comp = await compressModule(orig);
+				expect(comp.length).to.be.lessThan(orig.length);
+				const decomp = await decompressModule(comp);
+				expect(decomp.equals(orig)).to.be.true;
+			}
+		});
+	});
+
+	describe('combineModules() and splitCombinedModules()', () => {
+		it('combine and split test module binaries successfully', async () => {
+			const orig = [];
+			const maxFiles = 10;
+			let count = 0;
+			for (let file of TEST_BINARIES) {
+				const d = fs.readFileSync(file);
+				orig.push(d);
+				if (++count >= maxFiles) {
+					break;
+				}
+			}
+			const comb = await combineModules(orig);
+			const uncomb = await splitCombinedModules(comb);
+			expect(uncomb.length).to.equal(orig.length);
+			for (let i = 0; i < uncomb.length; ++i) {
+				expect(uncomb[i].equals(orig[i])).to.be.true;
+			}
+		});
+
+		it('combine and split compressed module binaries successfully', async () => {
+			const orig = [];
+			const maxFiles = 5;
+			let count = 0;
+			for (let file of TEST_BINARIES) {
+				const d = fs.readFileSync(file);
+				orig.push(d);
+				if (++count >= maxFiles) {
+					break;
+				}
+			}
+			const comp = [];
+			for (let d of orig) {
+				comp.push(await compressModule(d));
+			}
+			const comb = await combineModules(comp);
+			const uncomb = await splitCombinedModules(comb);
+			const uncomp = [];
+			for (let d of uncomb) {
+				uncomp.push(await decompressModule(d));
+			}
+			expect(uncomp.length).to.equal(orig.length);
+			for (let i = 0; i < uncomp.length; ++i) {
+				expect(uncomp[i].equals(orig[i])).to.be.true;
 			}
 		});
 	});
