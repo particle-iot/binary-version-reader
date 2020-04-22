@@ -10,7 +10,7 @@ const {
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
-const { MODULE_PREFIX_SIZE } = require('../../lib/ModuleInfo');
+const { Flags: ModuleFlags, MODULE_PREFIX_SIZE } = require('../../lib/ModuleInfo');
 const { createFirmwareBinary } = require('../../lib/firmwareTestHelper');
 
 const crc32 = require('buffer-crc32');
@@ -177,6 +177,54 @@ describe('moduleEncoding', () => {
 	});
 
 	describe('combineModules() and splitCombinedModules()', () => {
+		it('combine and split module binaries', async () => {
+			const bin1 = genModuleBinary();
+			const bin2 = genModuleBinary();
+			const comb = await combineModules([bin1, bin2]);
+			expect(comb.length).to.equal(bin1.length + bin2.length);
+			const uncomb = await splitCombinedModules(comb);
+			expect(uncomb[0].equals(bin1)).to.be.true;
+			expect(uncomb[1].equals(bin2)).to.be.true;
+		});
+
+		it('set and clear COMBINED flag on all modules except the last one', async () => {
+			// Combine 3 modules
+			const bin1 = genModuleBinary();
+			let prefix = (await parseModuleBinary(bin1)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
+			const bin2 = genModuleBinary();
+			prefix = (await parseModuleBinary(bin2)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
+			const bin3 = genModuleBinary();
+			prefix = (await parseModuleBinary(bin3)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
+			const comb = await combineModules([bin1, bin2, bin3]);
+			// Check 1st module
+			let buf = comb.slice(0, bin1.length);
+			prefix = (await parseModuleBinary(buf)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.not.equal(0);
+			// Check 2nd module
+			buf = comb.slice(bin1.length, bin1.length + bin2.length);
+			prefix = (await parseModuleBinary(buf)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.not.equal(0);
+			// Check 3rd module
+			buf = comb.slice(bin1.length + bin2.length, bin1.length + bin2.length + bin3.length);
+			prefix = (await parseModuleBinary(buf)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
+		});
+
+		it('update CRC-32 checksums of combined modules', async () => {
+			const bin1 = genModuleBinary();
+			const bin2 = genModuleBinary();
+			const comb = await combineModules([bin1, bin2]);
+			let buf = comb.slice(0, bin1.length);
+			let info = await parseModuleBinary(buf);
+			expect(info.crc.ok).to.be.ok;
+			buf = comb.slice(bin1.length, bin1.length + bin2.length);
+			info = await parseModuleBinary(buf);
+			expect(info.crc.ok).to.be.ok;
+		});
+
 		it('combine and split test module binaries successfully', async () => {
 			const orig = [];
 			const maxFiles = 10;
