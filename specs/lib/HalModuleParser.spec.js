@@ -697,7 +697,7 @@ describe('HalModuleParser', function () {
 		var parser = new HalModuleParser();
 		return parser.parseFile(filename)
 			.then(function (fileInfo) {
-				should(fileInfo.suffixInfo.productId).eql(0xCCDDAABB);
+				should(fileInfo.suffixInfo.productId).eql(0xaabbccdd);
 			});
 	});
 
