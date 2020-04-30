@@ -18,6 +18,7 @@
  * Created by middleca on 6/11/15.
  */
 
+var fs = require('fs');
 var path = require('path');
 var should = require('should');
 var when = require('when');
@@ -689,6 +690,47 @@ describe('HalModuleParser', function () {
 
 		});
 
+	});
+
+	it('allows parsing prefix and suffix info separately', function () {
+		var file = path.join(settings.binaries, '040_system-part1.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8020000',
+			moduleEndAddy: '805cba4',
+			reserved: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
+			moduleVersion: 1,
+			platformID: 6,
+			moduleFunction: 4,
+			moduleIndex: 1,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0,
+			prefixOffset: 388
+		};
+		var expectedSuffixInfo = {
+			productId: -1,
+			productVersion: -1,
+			fwUniqueId: 'ecb6acb4cf75ca04169f2214a24c470516cabe91683ac3664bdd174c4bb50386',
+			reserved: 0,
+			suffixSize: 36,
+			crcBlock: '5d7db471'
+		};
+		var fileBuffer = fs.readFileSync(file);
+		var parser = new HalModuleParser();
+		return parser.parsePrefix({ fileBuffer: fileBuffer })
+			.then(function (fileInfo) {
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+				should(fileInfo).not.have.property('suffixInfo');
+				return parser.parseSuffix({ fileBuffer: fileBuffer });
+			})
+			.then(function (fileInfo) {
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+				should(fileInfo).not.have.property('prefixInfo');
+			})
 	});
 
 	it('parses extended product id', function () {

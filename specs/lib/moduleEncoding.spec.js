@@ -166,6 +166,71 @@ describe('moduleEncoding', () => {
 	});
 
 	describe('compressModule() and decompressModule()', () => {
+		it('compress and decompress a module binary', async () => {
+			const bin = genModuleBinary({ data: Buffer.from('abababababababababcde'.repeat(10000)) });
+			const comp = await compressModule(bin);
+			expect(comp.length).to.be.lessThan(bin.length);
+			const decomp = await decompressModule(comp);
+			expect(decomp.equals(bin)).to.be.true;
+		});
+
+		it('set and clear COMPRESSED flag in the module\'s prefix info', async () => {
+			const bin = genModuleBinary();
+			let prefix = (await parseModuleBinary(bin)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMPRESSED).to.equal(0);
+			const comp = await compressModule(bin);
+			prefix = (await parseModuleBinary(comp)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMPRESSED).to.not.equal(0);
+			const decomp = await decompressModule(comp);
+			prefix = (await parseModuleBinary(decomp)).prefixInfo;
+			expect(prefix.moduleFlags & ModuleFlags.COMPRESSED).to.equal(0);
+		});
+
+		it('encode the header of the compressed data correctly', async () => {
+			const bin = genModuleBinary();
+			const comp = await compressModule(bin, {
+				zlib: {
+					windowBits: 14
+				}
+			});
+			const header = Buffer.alloc(8); // Expected header data
+			let offs = 0;
+			offs = header.writeUInt16LE(8, offs); // Header size
+			offs = header.writeUInt8(0, offs); // Compression method
+			offs = header.writeUInt8(14, offs); // Window size
+			offs = header.writeUInt32LE(bin.length, offs); // Original size
+			const h = comp.slice(MODULE_PREFIX_SIZE, MODULE_PREFIX_SIZE + header.length);
+			expect(h.equals(header)).to.be.true;
+		});
+
+		it('produce a compressed module with valid checksums', async () => {
+			const bin = genModuleBinary();
+			const comp = await compressModule(bin);
+			let hash = crypto.createHash('sha256');
+			hash.update(comp.slice(0, comp.length - SHA256_OFFSET));
+			hash = hash.digest();
+			const crc = crc32(comp.slice(0, comp.length - CRC32_OFFSET));
+			const info = await parseModuleBinary(comp);
+			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
+			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
+			expect(info.crc.ok).to.be.ok;
+		});
+
+		it('can optionally preserve the original module checksums', async () => {
+			const bin = genModuleBinary();
+			let offs = bin.length - SHA256_OFFSET;
+			bin.fill(0x11, offs, offs + 32);
+			offs = bin.length - CRC32_OFFSET;
+			bin.fill(0x22, offs, offs + 4);
+			const comp = await compressModule(bin, {
+				updateSha256: false,
+				updateCrc32: false
+			});
+			const { suffixInfo } = await parseModuleBinary(comp);
+			expect(suffixInfo.fwUniqueId).to.equal('11'.repeat(32));
+			expect(suffixInfo.crcBlock).to.equal('22'.repeat(4));
+		});
+
 		it('compress and decompress test module binaries successfully', async () => {
 			for (let file of TEST_BINARIES) {
 				const orig = fs.readFileSync(file);
@@ -276,10 +341,11 @@ describe('moduleEncoding', () => {
 	describe('updateModuleSha256()', () => {
 		it('updates the SHA-256 checksum of a module', async () => {
 			const bin = genModuleBinary();
+			const offs = bin.length - SHA256_OFFSET;
 			let hash = crypto.createHash('sha256');
-			hash.update(bin.slice(0, bin.length - SHA256_OFFSET));
+			hash.update(bin.slice(0, offs));
 			hash = hash.digest();
-			bin.fill(0, bin.length - SHA256_OFFSET);
+			bin.fill(0, offs, offs + 32);
 			updateModuleSha256(bin);
 			const { suffixInfo } = await parseModuleBinary(bin);
 			expect(suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
@@ -289,8 +355,9 @@ describe('moduleEncoding', () => {
 	describe('updateModuleCrc32()', () => {
 		it('updates the CRC-32 checksum of a module', async () => {
 			const bin = genModuleBinary();
-			const crc = crc32(bin.slice(0, bin.length - CRC32_OFFSET));
-			bin.fill(0, bin.length - CRC32_OFFSET);
+			const offs = bin.length - CRC32_OFFSET;
+			const crc = crc32(bin.slice(0, offs));
+			bin.fill(0, offs, offs + 4);
 			updateModuleCrc32(bin);
 			const { suffixInfo } = await parseModuleBinary(bin);
 			expect(suffixInfo.crcBlock).to.equal(crc.toString('hex'));
