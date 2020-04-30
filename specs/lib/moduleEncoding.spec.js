@@ -12,6 +12,7 @@ const {
 const HalModuleParser = require('../../lib/HalModuleParser');
 const { Flags: ModuleFlags, MODULE_PREFIX_SIZE } = require('../../lib/ModuleInfo');
 const { createFirmwareBinary } = require('../../lib/firmwareTestHelper');
+const { config } = require ('../../lib/config');
 
 const crc32 = require('buffer-crc32');
 const { expect } = require('chai');
@@ -280,7 +281,7 @@ describe('moduleEncoding', () => {
 			hash = hash.digest();
 			bin.fill(0, bin.length - SHA256_OFFSET);
 			updateModuleSha256(bin);
-			let { suffixInfo } = await parseModuleBinary(bin);
+			const { suffixInfo } = await parseModuleBinary(bin);
 			expect(suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
 		});
 	});
@@ -291,8 +292,30 @@ describe('moduleEncoding', () => {
 			const crc = crc32(bin.slice(0, bin.length - CRC32_OFFSET));
 			bin.fill(0, bin.length - CRC32_OFFSET);
 			updateModuleCrc32(bin);
-			let { suffixInfo } = await parseModuleBinary(bin);
+			const { suffixInfo } = await parseModuleBinary(bin);
 			expect(suffixInfo.crcBlock).to.equal(crc.toString('hex'));
+		});
+
+		describe('given that a custom CRC-32 function is provided globally', () => {
+			let defaultCrc32 = null;
+
+			before(() => {
+				defaultCrc32 = config().crc32;
+			});
+
+			afterEach(() => {
+				config({ crc32: defaultCrc32 });
+			});
+
+			it('uses that function for CRC-32 computations', async () => {
+				const bin = genModuleBinary();
+				bin.fill(0, bin.length - CRC32_OFFSET);
+				const dummyCrc = Buffer.from([0xaa, 0xbb, 0xcc, 0xdd]);
+				config({ crc32: buf => dummyCrc });
+				updateModuleCrc32(bin);
+				const { suffixInfo } = await parseModuleBinary(bin);
+				expect(suffixInfo.crcBlock).to.equal(dummyCrc.toString('hex'));
+			});
 		});
 	});
 });

@@ -19,6 +19,7 @@
  */
 
 const moduleEncoding = require('./lib/moduleEncoding');
+const config = require('./lib/config');
 
 module.exports = {
   HalModuleParser: require('./lib/HalModuleParser.js'),
@@ -27,5 +28,6 @@ module.exports = {
   FirmwareModule: require('./lib/FirmwareModule.js'),
   ModuleInfo: require('./lib/ModuleInfo.js'),
   firmwareTestHelper: require('./lib/firmwareTestHelper'),
-  ...moduleEncoding
+  ...moduleEncoding,
+  ...config
 };

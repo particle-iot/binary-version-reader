@@ -26,7 +26,9 @@ var buffers = require('h5.buffers');
 var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
-const ModuleInfo = require('../../lib/ModuleInfo.js');
+var ModuleInfo = require('../../lib/ModuleInfo.js');
+var createFirmwareBinary = require('../../lib/firmwareTestHelper').createFirmwareBinary;
+var config = require('../../lib/config.js').config;
 
 var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
@@ -689,19 +691,39 @@ describe('HalModuleParser', function () {
 
 	});
 
-	it('parses extended product id', function (done) {
+	it('parses extended product id', function () {
 		var filename = path.join(settings.binaries, 'extended-product-id.bin');
 
 		var parser = new HalModuleParser();
-		parser.parseFile(filename)
-			.then(
-				function (fileInfo) {
-					should(fileInfo.suffixInfo.productId).eql(0xCCDDAABB);
+		return parser.parseFile(filename)
+			.then(function (fileInfo) {
+				should(fileInfo.suffixInfo.productId).eql(0xCCDDAABB);
+			});
+	});
 
-					done();
-				},
-				function (err) {
-					done(err)
-				}).catch(done);
+	describe('given that a custom CRC-32 function is provided globally', function () {
+		var defaultCrc32 = null;
+
+		before(function () {
+			defaultCrc32 = config().crc32;
+		});
+
+		afterEach(function () {
+			config({ crc32: defaultCrc32 });
+		});
+
+		it('uses that function for CRC-32 computations', function () {
+			var dummyCrc = Buffer.from([0xaa, 0xbb, 0xcc, 0xdd]);
+			config({
+				crc32: function (buf) {
+					return dummyCrc;
+				}
+			});
+			var parser = new HalModuleParser();
+			return parser.parseBuffer({ fileBuffer: createFirmwareBinary() })
+				.then(function (fileInfo) {
+					should(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
+				});
+		});
 	});
 });
