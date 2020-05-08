@@ -216,7 +216,7 @@ describe('moduleEncoding', () => {
 			expect(info.crc.ok).to.be.ok;
 		});
 
-		it('can optionally preserve the original module checksums', async () => {
+		it('can optionally preserve original module checksums', async () => {
 			const bin = genModuleBinary();
 			let offs = bin.length - SHA256_OFFSET;
 			bin.fill(0x11, offs, offs + 32);
@@ -279,16 +279,53 @@ describe('moduleEncoding', () => {
 			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
 		});
 
-		it('update CRC-32 checksums of combined modules', async () => {
+		it('update checksums of combined modules', async () => {
 			const bin1 = genModuleBinary();
 			const bin2 = genModuleBinary();
 			const comb = await combineModules([bin1, bin2]);
+			// 1st module
 			let buf = comb.slice(0, bin1.length);
+			let hash = crypto.createHash('sha256');
+			hash.update(buf.slice(0, buf.length - SHA256_OFFSET));
+			hash = hash.digest();
+			let crc = crc32(buf.slice(0, buf.length - CRC32_OFFSET));
 			let info = await parseModuleBinary(buf);
+			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
+			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
 			expect(info.crc.ok).to.be.ok;
+			// 2nd module
 			buf = comb.slice(bin1.length, bin1.length + bin2.length);
+			hash = crypto.createHash('sha256');
+			hash.update(buf.slice(0, buf.length - SHA256_OFFSET));
+			hash = hash.digest();
+			crc = crc32(buf.slice(0, buf.length - CRC32_OFFSET));
 			info = await parseModuleBinary(buf);
+			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
+			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
 			expect(info.crc.ok).to.be.ok;
+		});
+
+		it('can optionally preserve original module checksums', async () => {
+			const bin1 = genModuleBinary();
+			bin1.fill(0x11, bin1.length - SHA256_OFFSET, bin1.length - SHA256_OFFSET + 32);
+			bin1.fill(0x22, bin1.length - CRC32_OFFSET, bin1.length - CRC32_OFFSET + 4);
+			const bin2 = genModuleBinary();
+			bin2.fill(0x33, bin2.length - SHA256_OFFSET, bin2.length - SHA256_OFFSET + 32);
+			bin2.fill(0x44, bin2.length - CRC32_OFFSET, bin2.length - CRC32_OFFSET + 4);
+			const comb = await combineModules([bin1, bin2], {
+				updateSha256: false,
+				updateCrc32: false
+			});
+			const uncomb = await splitCombinedModules(comb, {
+				updateSha256: false,
+				updateCrc32: false
+			});
+			let { suffixInfo } = await parseModuleBinary(uncomb[0]);
+			expect(suffixInfo.fwUniqueId).to.equal('11'.repeat(32));
+			expect(suffixInfo.crcBlock).to.equal('22'.repeat(4));
+			({ suffixInfo } = await parseModuleBinary(uncomb[1]));
+			expect(suffixInfo.fwUniqueId).to.equal('33'.repeat(32));
+			expect(suffixInfo.crcBlock).to.equal('44'.repeat(4));
 		});
 
 		it('combine and split test module binaries successfully', async () => {
