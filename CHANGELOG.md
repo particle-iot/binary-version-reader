@@ -1,3 +1,10 @@
+## 1.0.0
+
+* add API for compressing and decompressing module binaries.
+* add API for combining and splitting module binaries.
+* add support for extended 32-bit product IDs.
+* require Node.js 8 or higher.
+
 ## 0.5.2
 
 * add `isFactoryLocation` method to `FirmwareModule`
