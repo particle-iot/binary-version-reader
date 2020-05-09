@@ -18,6 +18,7 @@
  * Created by middleca on 6/11/15.
  */
 
+var fs = require('fs');
 var path = require('path');
 var should = require('should');
 var when = require('when');
@@ -26,7 +27,9 @@ var buffers = require('h5.buffers');
 var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
-const ModuleInfo = require('../../lib/ModuleInfo.js');
+var ModuleInfo = require('../../lib/ModuleInfo.js');
+var createFirmwareBinary = require('../../lib/firmwareTestHelper').createFirmwareBinary;
+var config = require('../../lib/config.js').config;
 
 var settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
@@ -88,6 +91,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8020000',
 			moduleEndAddy: '805cba4',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 6,
@@ -98,7 +102,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 388
 		};
 
 		var parser = new HalModuleParser();
@@ -122,6 +127,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8060000',
 			moduleEndAddy: '807e954',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 6,
@@ -132,7 +138,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 1,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 388
 		};
 
 		var parser = new HalModuleParser();
@@ -156,6 +163,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '80a0000',
 			moduleEndAddy: '80a128c',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 2,
 			platformID: 6,
@@ -166,7 +174,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 1,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -190,6 +199,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8005000',
 			moduleEndAddy: '801a8e0',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 0,
 			platformID: 0,
@@ -200,7 +210,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 268
 		};
 
 		var parser = new HalModuleParser();
@@ -308,6 +319,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '8000000',
 			moduleEndAddy: '8003f98',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 2,
 			platformID: 6,
@@ -318,7 +330,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 388
 		};
 
 		var expectedSuffixInfo = {
@@ -365,6 +378,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '18000',
 			moduleEndAddy: '36768',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1,
 			platformID: 103,
@@ -375,7 +389,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 192
 		};
 
 		var parser = new HalModuleParser();
@@ -399,6 +414,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'c7580',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 312,
 			platformID: 14,
@@ -409,7 +425,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 2,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 101
+			dep2ModuleVersion: 101,
+			prefixOffset: 512
 		};
 
 		var parser = new HalModuleParser();
@@ -432,6 +449,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'd4000',
 			moduleEndAddy: 'd4cec',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 5,
 			platformID: 14,
@@ -442,7 +460,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 312,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -465,6 +484,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: 'f4000',
 			moduleEndAddy: 'fc164',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 211,
 			platformID: 14,
@@ -475,7 +495,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 512
 		};
 
 		var parser = new HalModuleParser();
@@ -498,6 +519,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '0',
 			moduleEndAddy: 'ca73c',
+			reserved: 33,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 5,
 			platformID: 12,
@@ -508,7 +530,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 0,
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 0
+			dep2ModuleVersion: 0,
+			prefixOffset: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -531,6 +554,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '30000',
 			moduleEndAddy: 'ce668',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.NONE,
 			moduleVersion: 1100,
 			platformID: 23,
@@ -542,6 +566,7 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
+			prefixOffset: 512
 		};
 
 		var parser = new HalModuleParser();
@@ -564,6 +589,7 @@ describe('HalModuleParser', function () {
 		var expectedPrefixInfo = {
 			moduleStartAddy: '1000',
 			moduleEndAddy: '25e24',
+			reserved: 0,
 			moduleFlags: ModuleInfo.Flags.DROP_MODULE_INFO,
 			moduleVersion: 182,
 			platformID: ModuleInfo.Platform.ARGON,
@@ -574,7 +600,8 @@ describe('HalModuleParser', function () {
 			depModuleVersion: 1300,
 			dep2ModuleFunction: ModuleInfo.FunctionType.BOOTLOADER,
 			dep2ModuleIndex: 0,
-			dep2ModuleVersion: 311
+			dep2ModuleVersion: 311,
+			prefixOffset: 0
 		};
 
 		var parser = new HalModuleParser();
@@ -663,5 +690,82 @@ describe('HalModuleParser', function () {
 
 		});
 
+	});
+
+	it('allows parsing prefix and suffix info separately', function () {
+		var file = path.join(settings.binaries, '040_system-part1.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '8020000',
+			moduleEndAddy: '805cba4',
+			reserved: 0,
+			moduleFlags: ModuleInfo.Flags.NONE,
+			moduleVersion: 1,
+			platformID: 6,
+			moduleFunction: 4,
+			moduleIndex: 1,
+			depModuleFunction: 0,
+			depModuleIndex: 0,
+			depModuleVersion: 0,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0,
+			prefixOffset: 388
+		};
+		var expectedSuffixInfo = {
+			productId: -1,
+			productVersion: -1,
+			fwUniqueId: 'ecb6acb4cf75ca04169f2214a24c470516cabe91683ac3664bdd174c4bb50386',
+			reserved: 0,
+			suffixSize: 36,
+			crcBlock: '5d7db471'
+		};
+		var fileBuffer = fs.readFileSync(file);
+		var parser = new HalModuleParser();
+		return parser.parsePrefix({ fileBuffer: fileBuffer })
+			.then(function (fileInfo) {
+				should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+				should(fileInfo).not.have.property('suffixInfo');
+				return parser.parseSuffix({ fileBuffer: fileBuffer });
+			})
+			.then(function (fileInfo) {
+				should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+				should(fileInfo).not.have.property('prefixInfo');
+			})
+	});
+
+	it('parses extended product id', function () {
+		var filename = path.join(settings.binaries, 'extended-product-id.bin');
+
+		var parser = new HalModuleParser();
+		return parser.parseFile(filename)
+			.then(function (fileInfo) {
+				should(fileInfo.suffixInfo.productId).eql(0xaabbccdd);
+			});
+	});
+
+	describe('given that a custom CRC-32 function is provided globally', function () {
+		var defaultCrc32 = null;
+
+		before(function () {
+			defaultCrc32 = config().crc32;
+		});
+
+		afterEach(function () {
+			config({ crc32: defaultCrc32 });
+		});
+
+		it('uses that function for CRC-32 computations', function () {
+			var dummyCrc = Buffer.from([0xaa, 0xbb, 0xcc, 0xdd]);
+			config({
+				crc32: function (buf) {
+					return dummyCrc;
+				}
+			});
+			var parser = new HalModuleParser();
+			return parser.parseBuffer({ fileBuffer: createFirmwareBinary() })
+				.then(function (fileInfo) {
+					should(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
+				});
+		});
 	});
 });

@@ -18,11 +18,16 @@
  * Created by middleca on 6/11/15.
  */
 
+const moduleEncoding = require('./lib/moduleEncoding');
+const config = require('./lib/config');
+
 module.exports = {
   HalModuleParser: require('./lib/HalModuleParser.js'),
   HalDescribeParser: require('./lib/HalDescribeParser.js'),
   HalDependencyResolver: require('./lib/HalDependencyResolver.js'),
   FirmwareModule: require('./lib/FirmwareModule.js'),
   ModuleInfo: require('./lib/ModuleInfo.js'),
-  firmwareTestHelper: require('./lib/firmwareTestHelper')
+  firmwareTestHelper: require('./lib/firmwareTestHelper'),
+  ...moduleEncoding,
+  ...config
 };
