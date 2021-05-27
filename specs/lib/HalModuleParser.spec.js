@@ -23,7 +23,6 @@ var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
-var buffers = require('h5.buffers');
 var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
