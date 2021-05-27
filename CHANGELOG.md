@@ -1,3 +1,8 @@
+## 1.0.1
+
+* fixes incorrect parsing of compressed modules
+* refactors `HalModuleParser` module prefix parsing heuristics
+
 ## 1.0.0
 
 * add API for compressing and decompressing module binaries.
