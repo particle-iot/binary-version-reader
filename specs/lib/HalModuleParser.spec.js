@@ -23,7 +23,6 @@ var path = require('path');
 var should = require('should');
 var when = require('when');
 var pipeline = require('when/pipeline');
-var buffers = require('h5.buffers');
 var BufferOffset = require('buffer-offset');
 
 var HalModuleParser = require('../../lib/HalModuleParser.js');
@@ -674,7 +673,7 @@ describe('HalModuleParser', function () {
 				var parser = new HalModuleParser();
 				var buf = Buffer.alloc(buffer.length);
 				buffer.copy(buf);
-				parser._divineModulePrefixOffset = function () {
+				parser._findModulePrefixOffset = function () {
 					return 0;
 				};
 				module = parser._readPrefix(buffer);
@@ -767,5 +766,40 @@ describe('HalModuleParser', function () {
 					should(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
 				});
 		});
+	});
+
+	it('should work with unknown valid module', function (done) {
+		const filename = path.join(settings.binaries, 'unknown.bin');
+		const expectedPrefixInfo = {
+			moduleStartAddy: '20003000',
+			moduleEndAddy: '2000503c',
+			reserved: 129,
+			moduleFlags: 128,
+			moduleVersion: 9999,
+			platformID: 129,
+			moduleFunction: 129,
+			moduleIndex: 99,
+			depModuleFunction: 129,
+			depModuleIndex: 99,
+			depModuleVersion: 999,
+			dep2ModuleFunction: 129,
+			dep2ModuleIndex: 29,
+			dep2ModuleVersion: 129,
+			prefixOffset: 16
+		};
+
+		const parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+					should(fileInfo).be.ok;
+					should(fileInfo.crc.ok).be.ok;
+					should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+
+					done();
+				},
+				function (err) {
+					done(err)
+				}).catch(done);
 	});
 });
