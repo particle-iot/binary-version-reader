@@ -29,7 +29,36 @@ if (args.length <= 2) {
 }
 var filename = process.argv[2];
 
-
-p.parseFile(filename, function() {
+var printresults = function() {
 	console.log('got', arguments);
-});
+}
+
+if (args.length >=5) {
+	var command = process.argv[3];
+	var keyArg = process.argv[4];
+	var initializationVector = "";
+	var outputFile = "";
+
+	if (command == 'sign'){
+		outputFile = (args.length == 6) ? process.argv[5] : filename + '.signed';
+	}
+	else if(command == 'encrypt') {
+		if(args.length < 6){
+			console.log('missing correct # of args for encrypt command');
+			process.exit(-1);
+		}
+		initializationVector = process.argv[5];
+		outputFile = (args.length == 7) ? process.argv[6] : filename + '.encrypted';
+	}
+	else {
+		console.log('unrecognized command ', command);
+		process.exit(-1);
+	}
+
+	p.secureFile(filename, command, keyArg, initializationVector, outputFile, printresults);
+}
+else {
+	p.parseFile(filename, printresults);
+}
+
+
