@@ -1,0 +1,34 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@4.7.0
+
+jobs:
+  setup:
+    steps:
+      - checkout
+      - node/install:
+        node-version: 12.22.7
+        npm-version: 6.14.15
+      - node/install-packages
+      - run:
+        name: Set NPM Token
+        command: |
+          npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+
+  test:
+    steps:
+      - run:
+        command: npm test
+
+workflows:
+  test:
+    jobs:
+      - setup
+      - test:
+        post-steps:
+          - run: npm run coveralls
+  publish:
+    jobs:
+      - setup
+
