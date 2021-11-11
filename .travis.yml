@@ -1,8 +1,0 @@
-language: node_js
-node_js:
-- '5'
-after_success:
-  - npm run coveralls
-notifications:
-  slack:
-    secure: D1r1yiQ4qktm8ICTFFF7YWnDHH1uQN9Biiaws7vHJhwG8hzGEknUVdKa3Wb9GIVoeyRWZ4jhyopaM3FgqnOiX5AfrOrs1xk1F7ptPAT8DH0cZjKfP7ODUwKpY+42v/rQRTFUmBLuSluvmu2dRbhITCjrCBnb0D47V0YtE6HDfJc=
