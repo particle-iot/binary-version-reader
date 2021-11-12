@@ -1,3 +1,8 @@
+## 1.1.0
+
+* adopt `@particle/device-constants`
+* add new `p2` hardware platform
+
 ## 1.0.1
 
 * fixes incorrect parsing of compressed modules
