@@ -69,3 +69,16 @@ const firmwareTestHelper = require('binary-version-reader');
 const binary = firmwareTestHelper.createFirmwareBinary({ productId: 123, productVersion: 6, platformId: 10, depModuleVersion: 1210 });
 ```
 
+## Releasing changes
+
+Packages are only released from the `master` branch after peer review.
+
+1. make sure you have the latest:
+	* `$ git checkout master`
+	* `$ git pull`
+2. make sure tests pass
+	* `$ npm test`
+3. bump the version
+	* `$ npm version <major|minor|patch>`
+4. push your tags:
+	* `$ git push origin main --follow-tags`
