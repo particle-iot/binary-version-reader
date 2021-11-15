@@ -1,3 +1,7 @@
+## 1.1.1
+
+* make `@particle/device-constants` a peer dependency
+
 ## 1.1.0
 
 * adopt `@particle/device-constants`
