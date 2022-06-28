@@ -4,7 +4,8 @@
   "main": "main.js",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=8"
+    "node": ">=12",
+    "npm": "8.x"
   },
   "dependencies": {
     "buffer-crc32": "^0.2.5",
@@ -24,8 +25,14 @@
     "should": "^6.0.3"
   },
   "scripts": {
-    "test": "nyc --reporter=text mocha -R spec specs/lib/**.js",
-    "coverage": "nyc report --reporter=text-lcov | coveralls && rm -rf ./.nyc_output"
+    "test": "npm run test:unit",
+    "test:ci": "npm run test:unit -- --forbid-only && npm run coverage",
+    "test:unit": "nyc --reporter=text mocha -R spec specs/lib/**.js",
+    "test:unit:watch": "npm run test:unit -- --watch",
+    "test:unit:inspect": "npm run test:unit -- --inspect-brk",
+    "test:unit:silent": "npm run test:unit > tmp/test-unit-log.txt 2>&1",
+    "coverage": "nyc --reporter=text --include='specs/lib/**.js' --temp-dir=./tmp/ --check-coverage --lines 95 npm run test:unit:silent",
+    "reinstall": "rm -rf ./node_modules && npm i"
   },
   "bin": {
     "pmod": "bin/pmod.js"
