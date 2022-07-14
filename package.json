@@ -13,10 +13,10 @@
     "xtend": "^4.0.2"
   },
   "peerDependencies": {
-    "@particle/device-constants": "^1.0.0"
+    "@particle/device-constants": "2.x"
   },
   "devDependencies": {
-    "@particle/device-constants": "^1.0.1",
+    "@particle/device-constants": "^2.0.0",
     "buffer-offset": "^0.1.2",
     "chai": "^3.5.0",
     "coveralls": "^3.0.7",
