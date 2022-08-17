@@ -732,16 +732,6 @@ describe('HalModuleParser', function () {
 			})
 	});
 
-	it('parses extended product id', function () {
-		var filename = path.join(settings.binaries, 'extended-product-id.bin');
-
-		var parser = new HalModuleParser();
-		return parser.parseFile(filename)
-			.then(function (fileInfo) {
-				should(fileInfo.suffixInfo.productId).eql(0xaabbccdd);
-			});
-	});
-
 	describe('given that a custom CRC-32 function is provided globally', function () {
 		var defaultCrc32 = null;
 
@@ -800,6 +790,44 @@ describe('HalModuleParser', function () {
 				},
 				function (err) {
 					done(err)
+				}).catch(done);
+	});
+
+	it('should read suffix info from P2 user part with larger module suffix', function (done) {
+		var filename = path.join(settings.binaries, 'p2-user-part.bin');
+		var expectedSuffixInfo = {
+			productId: 32,
+			productVersion: 0xbeef,
+			fwUniqueId: '23b745ac727531a5d1278d32266fbb92c48150ed057c88c9bdebea962c06515d',
+			reserved: 0,
+			suffixSize: 62,
+			crcBlock: '0e3d4f63',
+			extensions: [
+				{
+					data: Buffer.from([0x02, 0x00, 0x10, 0x00, 0x00, 0xe0, 0x5f, 0x08, 0x88, 0xe0, 0x5f, 0x08, 0x48, 0xee, 0x3f, 0x02]),
+					length: 16,
+					offset: 8126,
+					type: 2
+				},
+				{
+					data: Buffer.from([0x01, 0x00, 0xa, 0x00, 0xff, 0xff, 0x20, 0x00, 0xef, 0xbe]),
+					length: 10,
+					offset: 8142,
+					type: 1
+				}
+			]
+		};
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+						should(fileInfo).be.ok;
+						should(fileInfo.crc.ok).be.ok;
+						should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+						done();
+				},
+				function (err) {
+						done(err)
 				}).catch(done);
 	});
 });
