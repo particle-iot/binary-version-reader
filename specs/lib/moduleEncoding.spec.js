@@ -6,22 +6,33 @@ const {
 	compressModule,
 	decompressModule,
 	combineModules,
-	splitCombinedModules
+	splitCombinedModules,
+	createAssetModule,
+	unwrapAssetModule,
+	createApplicationAndAssetBundle,
+	unpackApplicationAndAssetBundle,
+	updateModuleAssetDependencies,
+	sanitizeAddress
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
-const { Flags: ModuleFlags, MODULE_PREFIX_SIZE } = require('../../lib/ModuleInfo');
+const { Flags: ModuleFlags, MODULE_PREFIX_SIZE, FunctionType, ModuleInfoExtension } = require('../../lib/ModuleInfo');
 const { createFirmwareBinary } = require('../../lib/firmwareTestHelper');
 const { config } = require ('../../lib/config');
 
 const crc32 = require('buffer-crc32');
-const { expect } = require('chai');
+const chai = require('chai');
+const expect = chai.expect;
+const chaiExclude = require('chai-exclude');
+chai.use(chaiExclude);
 
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
 const TEST_BINARIES_PATH = path.resolve(path.join(__dirname, '../binaries'));
+
+const TEST_ASSETS_PATH = path.resolve(path.join(__dirname, '../assets'));
 
 // Exclude some old and malformed firmware binaries from the test
 const EXCLUDED_TEST_BINARIES = [
@@ -34,6 +45,9 @@ const EXCLUDED_TEST_BINARIES = [
 const TEST_BINARIES = fs.readdirSync(TEST_BINARIES_PATH)
 		.filter(f => f.endsWith('.bin') && !EXCLUDED_TEST_BINARIES.includes(f))
 		.map(f => path.join(TEST_BINARIES_PATH, f));
+
+const TEST_ASSETS = fs.readdirSync(TEST_ASSETS_PATH)
+		.map(f => path.join(TEST_ASSETS_PATH, f));
 
 const SHA256_OFFSET = 38; // Relative to the end of the module data
 const CRC32_OFFSET = 4; // ditto
@@ -60,6 +74,19 @@ async function parseModuleBinary(data) {
 	const parser = new HalModuleParser();
 	const info = await parser.parseBuffer({ fileBuffer: data });
 	return info;
+}
+
+function findExtension(type, extensions, fields) {
+	for (let ext of extensions) {
+		if (ext.type === type) {
+			if (fields) {
+				if (!Object.keys(fields).every(k => ext[k] === fields[k])) {
+					continue;
+				}
+			}
+			return ext;
+		}
+	}
 }
 
 describe('moduleEncoding', () => {
@@ -420,6 +447,172 @@ describe('moduleEncoding', () => {
 				const { suffixInfo } = await parseModuleBinary(bin);
 				expect(suffixInfo.crcBlock).to.equal(dummyCrc.toString('hex'));
 			});
+		});
+	});
+
+	describe('asset management', () => {
+		it('wraps asset file into a module and unwraps it back to original successfully', async () => {
+			for (let file of TEST_ASSETS) {
+				const origAsset = Buffer.from(fs.readFileSync(file));
+				const bin = await createAssetModule(origAsset, path.basename(file));
+				expect(bin.equals(origAsset)).to.be.false;
+				const info = await parseModuleBinary(bin);
+				expect(info.prefixInfo.moduleFunction).to.equal(FunctionType.ASSET);
+				expect(info.crc.ok).to.be.true;
+				// Check name and hash
+				expect(info.suffixInfo.extensions.length).to.be.greaterThan(1);
+				let name = null;
+				let hash = null;
+				for (let ext of info.suffixInfo.extensions) {
+					if (ext.type === ModuleInfoExtension.NAME) {
+						name = ext.name;
+					} else if (ext.type === ModuleInfoExtension.HASH) {
+						hash = ext.hash;
+					}
+				}
+				expect(name).to.equal(path.basename(file));
+				expect(hash).to.not.equal(null);
+				// Compressed by default
+				expect(info.prefixInfo.moduleFlags).to.equal(ModuleFlags.COMPRESSED | ModuleFlags.DROP_MODULE_INFO);
+				expect(bin.length).to.be.lessThan(origAsset.length);
+				// Unwrap
+				const unwrapped = await unwrapAssetModule(bin);
+				expect(unwrapped.equals(origAsset)).to.be.true;
+			}
+		});
+
+		it('wraps asset file into a module and unwraps it back to original successfully with compression disabled', async () => {
+			for (let file of TEST_ASSETS) {
+				const origAsset = Buffer.from(fs.readFileSync(file));
+				const bin = await createAssetModule(origAsset, path.basename(file), { compress: false });
+				expect(bin.equals(origAsset)).to.be.false;
+				const info = await parseModuleBinary(bin);
+				expect(info.prefixInfo.moduleFunction).to.equal(FunctionType.ASSET);
+				expect(info.crc.ok).to.be.true;
+				// Check name and hash
+				expect(info.suffixInfo.extensions.length).to.be.greaterThan(1);
+				let name = null;
+				let hash = null;
+				for (let ext of info.suffixInfo.extensions) {
+					if (ext.type === ModuleInfoExtension.NAME) {
+						name = ext.name;
+					} else if (ext.type === ModuleInfoExtension.HASH) {
+						hash = ext.hash;
+					}
+				}
+				expect(name).to.equal(path.basename(file));
+				expect(hash).to.not.equal(null);
+				// Not compressed in this case
+				expect(info.prefixInfo.moduleFlags).to.equal(ModuleFlags.DROP_MODULE_INFO);
+				expect(bin.length).to.be.greaterThan(origAsset.length);
+				// Unwrap
+				const unwrapped = await unwrapAssetModule(bin);
+				expect(unwrapped.equals(origAsset)).to.be.true;
+			}
+		});
+
+		it('adds asset dependencies to P2 user appplication', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin'));
+			const applicationWithAssets = await updateModuleAssetDependencies(application, assets);
+			expect(applicationWithAssets.length).to.be.greaterThan(application.length);
+			const infoApplication = await parseModuleBinary(application);
+			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
+			// Check some common fields which should be the same
+			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data'])
+					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
+			expect(infoApplication.prefixInfo).excluding(['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags'])
+					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			// P2 (RTL872x) applications grow left
+			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleStartAddy))
+					.to.be.lessThan(sanitizeAddress(infoApplication.prefixInfo.moduleStartAddy));
+			// DYNAMIC_LOCATION extensions has been updated
+			expect(findExtension(ModuleInfoExtension.DYNAMIC_LOCATION, infoApplicationWithAssets.suffixInfo.extensions).moduleStartAddress)
+					.to.equal(infoApplicationWithAssets.prefixInfo.moduleStartAddy);
+			expect(infoApplicationWithAssets.prefixInfo.extensions.length).to.be.greaterThan(assets.length);
+			for (let asset of assets) {
+				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.prefixInfo.extensions, { name: asset.name });
+				expect(ext).to.not.be.undefined;
+				expect(ext.name).to.equal(asset.name);
+				const wrapped = await createAssetModule(asset.data, asset.name);
+				const wrappedInfo = await parseModuleBinary(wrapped);
+				const wrappedHash = findExtension(ModuleInfoExtension.HASH, wrappedInfo.suffixInfo.extensions);
+				expect(wrappedHash).to.not.be.undefined;
+				expect(wrappedHash.hash).to.equal(ext.hash);
+			}
+		});
+
+		it('adds asset dependencies to Tracker user appplication', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const applicationWithAssets = await updateModuleAssetDependencies(application, assets);
+			expect(applicationWithAssets.length).to.be.greaterThan(application.length);
+			const infoApplication = await parseModuleBinary(application);
+			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
+			// Check some common fields which should be the same
+			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
+			expect(infoApplication.prefixInfo).excluding(['moduleEndAddy', 'prefixSize', 'moduleFlags'])
+					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			// Tracker (nRF52840) applications grow right
+			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoApplication.prefixInfo.moduleEndAddy));
+			expect(infoApplicationWithAssets.suffixInfo.extensions.length).to.be.greaterThan(assets.length);
+			for (let asset of assets) {
+				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.suffixInfo.extensions, { name: asset.name });
+				expect(ext).to.not.be.undefined;
+				expect(ext.name).to.equal(asset.name);
+				const wrapped = await createAssetModule(asset.data, asset.name);
+				const wrappedInfo = await parseModuleBinary(wrapped);
+				const wrappedHash = findExtension(ModuleInfoExtension.HASH, wrappedInfo.suffixInfo.extensions);
+				expect(wrappedHash).to.not.be.undefined;
+				expect(wrappedHash.hash).to.equal(ext.hash);
+			}
+		});
+
+
+		it('creates application and assets bundle for P2 user application from Buffers', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin'));
+			const app = { data: application, name: 'testapp.bin' };
+			const bundle = await createApplicationAndAssetBundle(app, assets);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.application.data.equals(application)).to.be.false;
+			expect(unpacked.application.name).to.equal(app.name);
+			expect(unpacked.assets).eql(assets);
+		});
+
+		it('creates application and assets bundle for P2 user application from paths', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin'));
+			const app = path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin');
+			const bundle = await createApplicationAndAssetBundle(app, TEST_ASSETS);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.application.data.equals(application)).to.be.false;
+			expect(unpacked.application.name).to.equal(path.basename(app));
+			expect(unpacked.assets).eql(assets);
+		});
+
+		it('creates application and assets bundle for Tracker user application from Buffers', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const app = { data: application, name: 'testapp.bin' };
+			const bundle = await createApplicationAndAssetBundle(app, assets);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.application.data.equals(application)).to.be.false;
+			expect(unpacked.application.name).to.equal(app.name);
+			expect(unpacked.assets).eql(assets);
+		});
+
+		it('creates application and assets bundle for Tracker user application from paths', async () => {
+			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const app = path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin');
+			const bundle = await createApplicationAndAssetBundle(app, TEST_ASSETS);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.application.data.equals(application)).to.be.false;
+			expect(unpacked.application.name).to.equal(path.basename(app));
+			expect(unpacked.assets).eql(assets);
 		});
 	});
 });

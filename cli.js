@@ -31,5 +31,5 @@ var filename = process.argv[2];
 
 
 p.parseFile(filename, function() {
-	console.log('got', arguments);
+	console.dir(arguments, { depth: null });
 });
