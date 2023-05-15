@@ -102,7 +102,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 388
+			prefixOffset: 388,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -138,7 +139,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 388
+			prefixOffset: 388,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -174,7 +176,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 0
+			prefixOffset: 0,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -210,7 +213,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 268
+			prefixOffset: 268,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -330,7 +334,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 388
+			prefixOffset: 388,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var expectedSuffixInfo = {
@@ -389,7 +394,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 192
+			prefixOffset: 192,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -425,7 +431,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 2,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 101,
-			prefixOffset: 512
+			prefixOffset: 512,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -460,7 +467,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 0
+			prefixOffset: 0,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -495,7 +503,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 512
+			prefixOffset: 512,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -530,7 +539,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 0
+			prefixOffset: 0,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -565,7 +575,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 512
+			prefixOffset: 512,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -600,7 +611,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: ModuleInfo.FunctionType.BOOTLOADER,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 311,
-			prefixOffset: 0
+			prefixOffset: 0,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		var parser = new HalModuleParser();
@@ -708,7 +720,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 0,
 			dep2ModuleIndex: 0,
 			dep2ModuleVersion: 0,
-			prefixOffset: 388
+			prefixOffset: 388,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 		var expectedSuffixInfo = {
 			productId: -1,
@@ -775,7 +788,8 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 129,
 			dep2ModuleIndex: 29,
 			dep2ModuleVersion: 129,
-			prefixOffset: 16
+			prefixOffset: 16,
+			prefixSize: ModuleInfo.MODULE_PREFIX_SIZE
 		};
 
 		const parser = new HalModuleParser();
@@ -793,7 +807,7 @@ describe('HalModuleParser', function () {
 				}).catch(done);
 	});
 
-	it('should read suffix info from P2 user part with larger module suffix', function (done) {
+	it('should read suffix info from P2 user part with larger module suffix containing extensions', function (done) {
 		var filename = path.join(settings.binaries, 'p2-user-part.bin');
 		var expectedSuffixInfo = {
 			productId: 32,
@@ -807,13 +821,18 @@ describe('HalModuleParser', function () {
 					data: Buffer.from([0x02, 0x00, 0x10, 0x00, 0x00, 0xe0, 0x5f, 0x08, 0x88, 0xe0, 0x5f, 0x08, 0x48, 0xee, 0x3f, 0x02]),
 					length: 16,
 					offset: 8126,
-					type: 2
+					type: 2,
+					dynalibLoadAddress: '85fe088',
+					dynalibStartAddress: '23fee48',
+					moduleStartAddress: '85fe000',
 				},
 				{
 					data: Buffer.from([0x01, 0x00, 0xa, 0x00, 0xff, 0xff, 0x20, 0x00, 0xef, 0xbe]),
 					length: 10,
 					offset: 8142,
-					type: 1
+					type: 1,
+					productId: 32,
+					productVersion: 48879,
 				}
 			]
 		};
@@ -829,5 +848,158 @@ describe('HalModuleParser', function () {
 				function (err) {
 						done(err)
 				}).catch(done);
+	});
+
+	it('should read prefix info from P2 user part with larger module prefix containing extensions', function (done) {
+		var filename = path.join(settings.binaries, 'p2-user-part-prefix-extensions.bin');
+		var expectedPrefixInfo = {
+			moduleStartAddy: '85f3f90',
+			moduleEndAddy: '85ffffc',
+			reserved: 0,
+			moduleFlags: ModuleInfo.Flags.PREFIX_EXTENSIONS,
+			moduleVersion: 6,
+			platformID: 32,
+			moduleFunction: 5,
+			moduleIndex: 1,
+			depModuleFunction: 4,
+			depModuleIndex: 1,
+			depModuleVersion: 5300,
+			dep2ModuleFunction: 0,
+			dep2ModuleIndex: 0,
+			dep2ModuleVersion: 0,
+			prefixSize: 136,
+			extensions: [
+				{
+					type: 18,
+					length: 58,
+					offset: 24,
+					data: Buffer.from([
+						18,   0,  58,   0,   0,  32,  18,  76, 146, 237, 146,
+						22, 238,  70,  25,  17, 158, 200, 218,  26, 135,  12,
+						53,  45,   6, 148,  31, 106, 180, 144, 175, 125, 151,
+						71, 218, 165,  71, 224,  49,  48,  51,  95, 115, 121,
+						115, 116, 101, 109,  45, 112,  97, 114, 116,  49,  46,
+						98, 105, 110
+					]),
+					hashType: 0,
+					hashLength: 32,
+					hash: '124c92ed9216ee4619119ec8da1a870c352d06941f6ab490af7d9747daa547e0',
+					name: '103_system-part1.bin'
+				},
+				{
+					type: 18,
+					length: 49,
+					offset: 82,
+					data: Buffer.from([
+						18,   0,  49,   0,   0,  32, 123, 176,   1, 176,
+						109, 187, 202,   6, 232, 237,  46,  92, 120, 192,
+						203, 172,  89, 165, 142,   8, 247,  64, 221, 198,
+						183, 106,  69,  53,  55, 160,  61,  46, 117, 110,
+						107, 110, 111, 119, 110,  46,  98, 105, 110
+					]),
+					hashType: 0,
+					hashLength: 32,
+					hash: '7bb001b06dbbca06e8ed2e5c78c0cbac59a58e08f740ddc6b76a453537a03d2e',
+					name: 'unknown.bin'
+				},
+				{
+					type: 0,
+					length: 5,
+					offset: 131,
+					data: Buffer.from([ 0, 0, 5, 0, 0 ])
+				}
+			],
+			prefixOffset: 0
+		};
+		var expectedSuffixInfo = {
+			productId: 32,
+			productVersion: 4,
+			fwUniqueId: 'a0485beefdd9a2e5c6a5f53ed37d3418defa750cc41b1e2c324759010bfedfd8',
+			reserved: 0,
+			suffixSize: 62,
+			crcBlock: '53a6df7b',
+			extensions: [
+				{
+					type: 2,
+					length: 16,
+					offset: 49198,
+					data: Buffer.from([
+							2,  0,  16,  0, 144, 63,
+						95,  8, 136, 64,  95,  8,
+						248, 81,  63,  2
+					]),
+					moduleStartAddress: '85f3f90',
+					dynalibLoadAddress: '85f4088',
+					dynalibStartAddress: '23f51f8'
+				},
+				{
+					type: 1,
+					length: 10,
+					offset: 49214,
+					data: Buffer.from([
+							1,  0, 10, 0, 255,
+						255, 32,  0, 4,   0
+					]),
+					productId: 32,
+					productVersion: 4
+				}
+			]
+		};
+		var parser = new HalModuleParser();
+		parser.parseFile(filename)
+			.then(
+				function (fileInfo) {
+						should(fileInfo).be.ok;
+						should(fileInfo.crc.ok).be.ok;
+						should(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+						should(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+						done();
+				},
+				function (err) {
+						done(err)
+				}).catch(done);
+	});
+
+	it('should read asset extensions from P2 application binary', async () => {
+		const filename = path.join(settings.binaries, 'p2-user-part-prefix-extensions.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		const expectedAssets = [
+			{
+				hashType: 0,
+				hash: '124c92ed9216ee4619119ec8da1a870c352d06941f6ab490af7d9747daa547e0',
+				name: '103_system-part1.bin'
+			},
+			{
+				hashType: 0,
+				hash: '7bb001b06dbbca06e8ed2e5c78c0cbac59a58e08f740ddc6b76a453537a03d2e',
+				name: 'unknown.bin'
+			}
+		];
+		should(parsed.assets).eql(expectedAssets);
+	});
+
+	it('should read asset extensions from Tracker application binary', async () => {
+		const filename = path.join(settings.binaries, 'tracker-user-part-extensions.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		const expectedAssets = [
+			{
+				hash: '3a2c00b0b9b37f02b266bd75b2758638c40a7ab400353fea3ca9169552f26f63',
+				hashType: 0,
+				name: 'btgap.a'
+			},
+			{
+				hash: '28c040ee247e13f230835be0a8fb50ca95b4b5548a7256c862db09140e01ef6b',
+				hashType: 0,
+				name: 'cat.jpg'
+			},
+			{
+				hash: '3a54bbfb74733253df7adcc8a0e475e934c18636f44f7c94dbeb056a98d9b563',
+				hashType: 0,
+				name: 'km4_image2_all.bin'
+			}			
+		];
+		should(parsed.assets).eql(expectedAssets);
 	});
 });
