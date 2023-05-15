@@ -959,4 +959,47 @@ describe('HalModuleParser', function () {
 						done(err)
 				}).catch(done);
 	});
+
+	it('should read asset extensions from P2 application binary', async () => {
+		const filename = path.join(settings.binaries, 'p2-user-part-prefix-extensions.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		const expectedAssets = [
+			{
+				hashType: 0,
+				hash: '124c92ed9216ee4619119ec8da1a870c352d06941f6ab490af7d9747daa547e0',
+				name: '103_system-part1.bin'
+			},
+			{
+				hashType: 0,
+				hash: '7bb001b06dbbca06e8ed2e5c78c0cbac59a58e08f740ddc6b76a453537a03d2e',
+				name: 'unknown.bin'
+			}
+		];
+		should(parsed.assets).eql(expectedAssets);
+	});
+
+	it('should read asset extensions from Tracker application binary', async () => {
+		const filename = path.join(settings.binaries, 'tracker-user-part-extensions.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		const expectedAssets = [
+			{
+				hash: '3a2c00b0b9b37f02b266bd75b2758638c40a7ab400353fea3ca9169552f26f63',
+				hashType: 0,
+				name: 'btgap.a'
+			},
+			{
+				hash: '28c040ee247e13f230835be0a8fb50ca95b4b5548a7256c862db09140e01ef6b',
+				hashType: 0,
+				name: 'cat.jpg'
+			},
+			{
+				hash: '3a54bbfb74733253df7adcc8a0e475e934c18636f44f7c94dbeb056a98d9b563',
+				hashType: 0,
+				name: 'km4_image2_all.bin'
+			}			
+		];
+		should(parsed.assets).eql(expectedAssets);
+	});
 });

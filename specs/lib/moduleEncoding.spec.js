@@ -140,7 +140,7 @@ describe('moduleEncoding', () => {
 				const origBin = fs.readFileSync(file);
 				const { prefixInfo } = await parseModuleBinary(origBin);
 				const bin = Buffer.from(origBin);
-				bin.fill(0, prefixInfo.prefixOffset, prefixInfo.prefixOffset + MODULE_PREFIX_SIZE);
+				bin.fill(0, prefixInfo.prefixOffset, prefixInfo.prefixOffset + prefixInfo.prefixSize);
 				updateModulePrefix(bin, prefixInfo);
 				expect(bin.equals(origBin)).to.be.true;
 			}
@@ -563,6 +563,79 @@ describe('moduleEncoding', () => {
 				expect(ext).to.not.be.undefined;
 				expect(ext.name).to.equal(asset.name);
 				const wrapped = await createAssetModule(asset.data, asset.name);
+				const wrappedInfo = await parseModuleBinary(wrapped);
+				const wrappedHash = findExtension(ModuleInfoExtension.HASH, wrappedInfo.suffixInfo.extensions);
+				expect(wrappedHash).to.not.be.undefined;
+				expect(wrappedHash.hash).to.equal(ext.hash);
+			}
+		});
+
+		it('adds asset dependencies to P2 user appplication using asset modules (wrapped)', async () => {
+			let assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			assets = await Promise.all(assets.map(async (asset) => {
+				const module = await createAssetModule(Buffer.from(asset.data), asset.name);
+				return {
+					data: module,
+					name: asset.name
+				}
+			}));
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin'));
+			const applicationWithAssets = await updateModuleAssetDependencies(application, assets);
+			expect(applicationWithAssets.length).to.be.greaterThan(application.length);
+			const infoApplication = await parseModuleBinary(application);
+			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
+			// Check some common fields which should be the same
+			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data'])
+					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
+			expect(infoApplication.prefixInfo).excluding(['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags'])
+					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			// P2 (RTL872x) applications grow left
+			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleStartAddy))
+					.to.be.lessThan(sanitizeAddress(infoApplication.prefixInfo.moduleStartAddy));
+			// DYNAMIC_LOCATION extensions has been updated
+			expect(findExtension(ModuleInfoExtension.DYNAMIC_LOCATION, infoApplicationWithAssets.suffixInfo.extensions).moduleStartAddress)
+					.to.equal(infoApplicationWithAssets.prefixInfo.moduleStartAddy);
+			expect(infoApplicationWithAssets.prefixInfo.extensions.length).to.be.greaterThan(assets.length);
+			for (let asset of assets) {
+				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.prefixInfo.extensions, { name: asset.name });
+				expect(ext).to.not.be.undefined;
+				expect(ext.name).to.equal(asset.name);
+				const wrapped = asset.data;
+				const wrappedInfo = await parseModuleBinary(wrapped);
+				const wrappedHash = findExtension(ModuleInfoExtension.HASH, wrappedInfo.suffixInfo.extensions);
+				expect(wrappedHash).to.not.be.undefined;
+				expect(wrappedHash.hash).to.equal(ext.hash);
+			}
+		});
+
+		it('adds asset dependencies to Tracker user appplication using asset modules (wrapped)', async () => {
+			let assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
+			assets = await Promise.all(assets.map(async (asset) => {
+				const module = await createAssetModule(Buffer.from(asset.data), asset.name);
+				return {
+					data: module,
+					name: asset.name
+				}
+			}));
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const applicationWithAssets = await updateModuleAssetDependencies(application, assets);
+			expect(applicationWithAssets.length).to.be.greaterThan(application.length);
+			const infoApplication = await parseModuleBinary(application);
+			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
+			// Check some common fields which should be the same
+			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
+			expect(infoApplication.prefixInfo).excluding(['moduleEndAddy', 'prefixSize', 'moduleFlags'])
+					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			// Tracker (nRF52840) applications grow right
+			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoApplication.prefixInfo.moduleEndAddy));
+			expect(infoApplicationWithAssets.suffixInfo.extensions.length).to.be.greaterThan(assets.length);
+			for (let asset of assets) {
+				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.suffixInfo.extensions, { name: asset.name });
+				expect(ext).to.not.be.undefined;
+				expect(ext.name).to.equal(asset.name);
+				const wrapped = asset.data;
 				const wrappedInfo = await parseModuleBinary(wrapped);
 				const wrappedHash = findExtension(ModuleInfoExtension.HASH, wrappedInfo.suffixInfo.extensions);
 				expect(wrappedHash).to.not.be.undefined;
