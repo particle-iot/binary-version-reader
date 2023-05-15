@@ -643,7 +643,6 @@ describe('moduleEncoding', () => {
 			}
 		});
 
-
 		it('creates application and assets bundle for P2 user application from Buffers', async () => {
 			const assets = TEST_ASSETS.map(f => { return { data: fs.readFileSync(f), name: path.basename(f) }});
 			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-tinker@5.3.1.bin'));
@@ -686,6 +685,16 @@ describe('moduleEncoding', () => {
 			expect(unpacked.application.data.equals(application)).to.be.false;
 			expect(unpacked.application.name).to.equal(path.basename(app));
 			expect(unpacked.assets).eql(assets);
+		});
+
+		it('creates application bundle when there are no assets', async () => {
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const app = path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin');
+			const bundle = await createApplicationAndAssetBundle(app, []);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.application.data.equals(application)).to.be.true;
+			expect(unpacked.application.name).to.equal(path.basename(app));
+			expect(unpacked.assets).be.eql([]);
 		});
 	});
 });
