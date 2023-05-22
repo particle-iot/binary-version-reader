@@ -12,7 +12,8 @@ const {
 	createApplicationAndAssetBundle,
 	unpackApplicationAndAssetBundle,
 	updateModuleAssetDependencies,
-	sanitizeAddress
+	sanitizeAddress,
+	isAssetValid
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -29,6 +30,7 @@ chai.use(chaiExclude);
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const ModuleInfo = require('../../lib/ModuleInfo');
 
 const TEST_BINARIES_PATH = path.resolve(path.join(__dirname, '../binaries'));
 
@@ -695,6 +697,50 @@ describe('moduleEncoding', () => {
 			expect(unpacked.application.data.equals(application)).to.be.true;
 			expect(unpacked.application.name).to.equal(path.basename(app));
 			expect(unpacked.assets).be.eql([]);
+		});
+	});
+
+	describe('isAssetValid', () => {
+		it('returns true if the asset binary matches the hash', async () => {
+			const asset = await fs.promises.readFile(TEST_ASSETS[0]);
+			const assetInfo = {
+				type: ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY,
+				hashType: ModuleInfo.ModuleInfoHashExtensionType.SHA256,
+				hash: crypto.createHash('sha256').update(asset).digest('hex'),
+				name: path.basename(TEST_ASSETS[0])
+			};
+
+			expect(isAssetValid(asset, assetInfo)).to.be.true;
+		});
+
+		it('returns false if the asset binary does not match the hash', async () => {
+			const asset = await fs.promises.readFile(TEST_ASSETS[0]);
+			const assetInfo = {
+				type: ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY,
+				hashType: ModuleInfo.ModuleInfoHashExtensionType.SHA256,
+				hash: 'eac63541cfbeba37b8ec819b73c16b7f193c6cacbb810cdba1b3a49809dff5d0',
+				name: path.basename(TEST_ASSETS[0])
+			};
+
+			expect(isAssetValid(asset, assetInfo)).to.be.false
+		});
+
+		it('throws if the hash type is unknown', async () => {
+			const asset = await fs.promises.readFile(TEST_ASSETS[0]);
+			const assetInfo = {
+				type: ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY,
+				hashType: ModuleInfo.ModuleInfoHashExtensionType.SHA256 + 1,
+				hash: 'eac63541cfbeba37b8ec819b73c16b7f193c6cacbb810cdba1b3a49809dff5d0',
+				name: path.basename(TEST_ASSETS[0])
+			};
+
+			let error;
+			try {
+				isAssetValid(asset, assetInfo);
+			} catch (e) {
+				error = e;
+			}
+			expect(error).to.be.instanceOf(Error).with.property('message', 'Invalid asset hash type');
 		});
 	});
 });
