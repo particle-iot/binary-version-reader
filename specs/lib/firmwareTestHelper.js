@@ -2,6 +2,7 @@
 const expect = require('chai').expect;
 const firmwareTestHelper = require('../../lib/firmwareTestHelper');
 const HalModuleParser = require('../../lib/HalModuleParser');
+const ModuleInfo = require('../../lib/ModuleInfo');
 
 describe('firmwareTestHelper', function() {
 	describe('createFirmwareBinary', function() {
@@ -10,8 +11,15 @@ describe('firmwareTestHelper', function() {
 			const productVersion = 3;
 			const platformId = 6;
 			const depModuleVersion = 1234;
+			const deps = [
+				{
+					func: ModuleInfo.FunctionType.SYSTEM_PART,
+					index: 1,
+					version: depModuleVersion
+				}
+			];
 
-			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, depModuleVersion });
+			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, deps });
 
 			const parser = new HalModuleParser();
 			return parser.parseBuffer({ fileBuffer: binary }).then((fileInfo) => {
@@ -29,8 +37,15 @@ describe('firmwareTestHelper', function() {
 			const productVersion = 3;
 			const platformId = 6;
 			const depModuleVersion = 1234;
+			const deps = [
+				{
+					func: ModuleInfo.FunctionType.SYSTEM_PART,
+					index: 1,
+					version: depModuleVersion
+				}
+			];
 
-			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, depModuleVersion,
+			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, deps,
 					addVectorTable: true });
 
 			const parser = new HalModuleParser();
