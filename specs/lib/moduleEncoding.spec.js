@@ -28,7 +28,7 @@ const expect = chai.expect;
 const chaiExclude = require('chai-exclude');
 chai.use(chaiExclude);
 
-const chaiAsPromised = require("chai-as-promised");
+const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 
 const crypto = require('crypto');
