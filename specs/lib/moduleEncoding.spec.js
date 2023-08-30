@@ -13,7 +13,8 @@ const {
 	unpackApplicationAndAssetBundle,
 	updateModuleAssetDependencies,
 	sanitizeAddress,
-	isAssetValid
+	isAssetValid,
+	AssetLimitError
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -26,6 +27,9 @@ const chai = require('chai');
 const expect = chai.expect;
 const chaiExclude = require('chai-exclude');
 chai.use(chaiExclude);
+
+const chaiAsPromised = require('chai-as-promised');
+chai.use(chaiAsPromised);
 
 const crypto = require('crypto');
 const path = require('path');
@@ -697,6 +701,35 @@ describe('moduleEncoding', () => {
 			expect(unpacked.application.data.equals(application)).to.be.true;
 			expect(unpacked.application.name).to.equal(path.basename(app));
 			expect(unpacked.assets).be.eql([]);
+		});
+
+		it('throws an error when application binary with added asset dependencies exceeds platform size limit', async () => {
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-max-size@5.5.0-rc.1.bin'));
+			const assets = [];
+			for (let i = 0; i < 100; i++) {
+				assets.push({
+					data: genRandomBuffer(1),
+					name: genRandomBuffer(127).toString('hex')
+				});
+			}
+			return expect(createApplicationAndAssetBundle(application, assets)).to.be.rejectedWith(AssetLimitError, 'Resulting module exceeds platform size limits');
+		});
+
+		it('throws an error when asset exceeds maximum single asset size limit on Tracker platform', async () => {
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			return expect(createApplicationAndAssetBundle(application, [{ data: genRandomBuffer(10 * 1024 * 1024), name: 'test.bin' }])).to.be.rejectedWith(AssetLimitError, /maximum single asset size limit/);
+		});
+
+		it('throws an error when assets exceed total maximum size of assets on Tracker platform', async () => {
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const assets = [];
+			for (let i = 0; i < 10; i++) {
+				assets.push({
+					data: genRandomBuffer(400 * 1024),
+					name: genRandomBuffer(127).toString('hex')
+				});
+			}
+			return expect(createApplicationAndAssetBundle(application, assets)).to.be.rejectedWith(AssetLimitError, /Total size of assets exceeds/);
 		});
 	});
 
