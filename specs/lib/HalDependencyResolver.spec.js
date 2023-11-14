@@ -23,8 +23,6 @@ var fs = require('fs');
 var path = require('path');
 var should = require('should');
 var extend = require('xtend');
-var when = require('when');
-var pipeline = require('when/pipeline');
 var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
 var FirmwareModule = require('../../lib/FirmwareModule');
 var expect = require('chai').expect;
@@ -120,7 +118,7 @@ describe('HalDependencyResolver', function() {
 		  \/_____/   \/_/   \/_/   \/_____/   \/_____/     \/_/
 
 	 */
-	it('passes a full test', function(done) {
+	it('passes a full test', async function() {
 
 		var resolver = new HalDependencyResolver();
 
@@ -128,8 +126,8 @@ describe('HalDependencyResolver', function() {
 		var part2 = path.join(settings.binaries, '../binaries/040_system-part2.bin');
 
 		// load those modules in!
-		resolver.assimilateModule(part1);
-		resolver.assimilateModule(part2);
+		await resolver.assimilateModule(part1);
+		await resolver.assimilateModule(part2);
 
 
 		var describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
@@ -141,26 +139,19 @@ describe('HalDependencyResolver', function() {
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
-			.then(function(result) {
-				should(result).be.ok;
-				console.log('dependency resolve result had ', result.length, ' items ');
-				should(result.length).eql(2);
+		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-				//the first thing should be part1, and the second thing part2
+		should(result).be.ok;
+		console.log('dependency resolve result had ', result.length, ' items ');
+		should(result.length).eql(2);
 
-				should(result[0].filename).endWith('system-part1.bin');
-				should(result[1].filename).endWith('system-part2.bin');
+		//the first thing should be part1, and the second thing part2
 
-				done();
-			}, function(err) {
-				done(err);
-			}).catch(function(err) {
-				done(err);
-			});
+		should(result[0].filename).endWith('system-part1.bin');
+		should(result[1].filename).endWith('system-part2.bin');
 	});
 
-	it('recommend modules when going from 042 to 043', function(done) {
+	it('recommend modules when going from 042 to 043', async function() {
 
 		var resolver = new HalDependencyResolver();
 
@@ -168,8 +159,8 @@ describe('HalDependencyResolver', function() {
 		var part2 = path.join(settings.binaries, '../binaries/043_system-part2.bin');
 
 		// load those modules in!
-		resolver.assimilateModule(part1);
-		resolver.assimilateModule(part2);
+		await resolver.assimilateModule(part1);
+		await resolver.assimilateModule(part2);
 
 
 		var describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
@@ -181,26 +172,19 @@ describe('HalDependencyResolver', function() {
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
-		var result = resolver.parseAndResolve(oldDescribe, fileBuffer)
-			.then(function(result) {
-				should(result).be.ok;
-				console.log('dependency resolve result had ', result.length, ' items ');
-				should(result.length).eql(2);
+		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-				//the first thing should be part1, and the second thing part2
+		should(result).be.ok;
+		console.log('dependency resolve result had ', result.length, ' items ');
+		should(result.length).eql(2);
 
-				should(result[0].filename).endWith('system-part1.bin');
-				should(result[1].filename).endWith('system-part2.bin');
+		//the first thing should be part1, and the second thing part2
 
-				done();
-			}, function(err) {
-				done(err);
-			}).catch(function(err) {
-				done(err);
-			});
+		should(result[0].filename).endWith('system-part1.bin');
+		should(result[1].filename).endWith('system-part2.bin');
 	});
 
-	it('rejects when detects missing dependencies', function(done){
+	it('rejects when detects missing dependencies', async function(){
 		var userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
 		var resolver = new HalDependencyResolver();
 
@@ -211,24 +195,22 @@ describe('HalDependencyResolver', function() {
 		should(deps[0].n).eql('2');
 		should(deps[0].v).eql(8);
 
-		resolver.userModuleHasMissingDependencies(userModuleSafeMode)
-			.then(
-			function(result) {
-				done(new Error("Should have rejected: " + result));
-			},
-			function(err) {
-				should(err).be.ok;
-				should(err.length).eql(1);
+		try {
+			await resolver.userModuleHasMissingDependencies(userModuleSafeMode);
+			new Error("Should have rejected: " + result);
+		} catch (err) {
+			console.log('!!!!!!!got error as expected', err)
+			should(err).be.ok;
+			should(err.length).eql(1);
 
-				// show me the module that needs replacing!
-				err[0].func.should.eql('s');
-				err[0].name.should.eql('2');
-				err[0].version.should.eql(8);
-				done();
-			});
+			// show me the module that needs replacing!
+			err[0].func.should.eql('s');
+			err[0].name.should.eql('2');
+			err[0].version.should.eql(8);
+		}
 	});
 
-	it('resolves when dependencies are met', function(done){
+	it('resolves when dependencies are met', async function(){
 		var data = require('./../describes/fixed_dependencies_describe.json.js');
 		var resolver = new HalDependencyResolver();
 
@@ -237,12 +219,7 @@ describe('HalDependencyResolver', function() {
 		should(deps).be.ok;
 		should(deps.length).eql(0);
 
-		resolver.userModuleHasMissingDependencies(data)
-			.then(function(result) {
-				done();
-			}, function(err) {
-				done(err || "Should not have rejected");
-			});
+		return resolver.userModuleHasMissingDependencies(data);
 	});
 
 	it('solves firmware module', function(){
@@ -268,7 +245,7 @@ describe('HalDependencyResolver', function() {
 		result[0].v.should.eql(requiredVersion);
 	});
 
-	it('finds missing dependencies for example 1', function(done) {
+	it('finds missing dependencies for example 1', async function() {
 		var data = require('./../describes/safe_mode_1.json.js');
 		var resolver = new HalDependencyResolver();
 		var results = resolver.findAnyMissingDependencies(data);
@@ -284,15 +261,13 @@ describe('HalDependencyResolver', function() {
 		should(dep.f).eql(shouldBeMissing.f);
 		should(dep.n).eql(shouldBeMissing.n);
 		should(dep.v).eql(shouldBeMissing.v);
-
-		done();
 	});
 
 
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
-	it('handles missing user module appropriately', function(done) {
+	it('handles missing user module appropriately', async function() {
 
 		var describe = require('./../describes/describe_no_usermodule.js');
 		var resolver = new HalDependencyResolver();
@@ -304,20 +279,13 @@ describe('HalDependencyResolver', function() {
 		should(deps.length).eql(0);
 
 		// should resolve
-		resolver.userModuleHasMissingDependencies(describe)
-			.then(
-			function(result) {
-				done();
-			},
-			function(err) {
-				done(new Error("Should have resolved: " + err));
-			});
+		return resolver.userModuleHasMissingDependencies(describe);
 	});
 
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
-	it('handles missing user module with missing stuff appropriately', function(done) {
+	it('handles missing user module with missing stuff appropriately', async function() {
 
 		var describe = require('./../describes/describe_no_usermodule2.js');
 		var resolver = new HalDependencyResolver();
@@ -333,17 +301,10 @@ describe('HalDependencyResolver', function() {
 		should(deps[0].v).eql(3);
 
 		// should resolve without finding anything, because this describe has no usermodule.
-		resolver.userModuleHasMissingDependencies(describe)
-			.then(
-			function(result) {
-				done();
-			},
-			function(err) {
-				done(new Error("Should have resolved: " + err));
-			});
+		return resolver.userModuleHasMissingDependencies(describe);
 	});
 
-	it('handles weird double-safe-mode case', function(done) {
+	it('handles weird double-safe-mode case', async function() {
 
 		var describe = require('./../describes/safe_mode_3.json.js');
 		var resolver = new HalDependencyResolver();
@@ -362,12 +323,9 @@ describe('HalDependencyResolver', function() {
 		// so when picking an update in the case of multiple dependencies, we should pick the thing that
 		// itself has no dependencies if available.
 
-		done();
-
-
 	});
 
-	it('handles multiple dependencies', function(done) {
+	it('handles multiple dependencies', async function() {
 
 		var describe = require('./../describes/multiple_dependencies.json.js');
 		var resolver = new HalDependencyResolver();
@@ -382,8 +340,6 @@ describe('HalDependencyResolver', function() {
 		should(deps[0].f).eql(m.f);
 		should(deps[0].n).eql(m.n);
 		should(deps[0].v).eql(m.v);
-
-		done();
 	});
 
 
