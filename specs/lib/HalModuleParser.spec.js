@@ -821,4 +821,34 @@ describe('HalModuleParser', function () {
 		];
 		should(parsed.assets).eql(expectedAssets);
 	});
+
+	it('should read security extension from P2 bootloader binary', async () => {
+		const filename = path.join(settings.binaries, 'p2-bootloader-protected.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		should(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+	});
+
+	it('should read security extension from Tracker bootloader binary', async () => {
+		const filename = path.join(settings.binaries, 'tracker-bootloader-protected.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		should(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+	});
+
+	it('should read security extension with cert from P2 bootloader binary', async () => {
+		const filename = path.join(settings.binaries, 'p2-bootloader-protected-cert.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		should(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		should(parsed.security.certificate.length).eql(300);
+	});
+
+	it('should read security extension with cert from Tracker bootloader binary', async () => {
+		const filename = path.join(settings.binaries, 'tracker-bootloader-protected-cert.bin');
+		const parser = new HalModuleParser();
+		const parsed = await parser.parseFile(filename);
+		should(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		should(parsed.security.certificate.length).eql(300);
+	});
 });

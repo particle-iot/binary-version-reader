@@ -14,7 +14,8 @@ const {
 	updateModuleAssetDependencies,
 	sanitizeAddress,
 	isAssetValid,
-	AssetLimitError
+	AssetLimitError,
+	createProtectedModule
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -774,6 +775,123 @@ describe('moduleEncoding', () => {
 				error = e;
 			}
 			expect(error).to.be.instanceOf(Error).with.property('message', 'Invalid asset hash type');
+		});
+	});
+
+	describe('security mode', () => {
+		it('adds security extension with protected mode to P2 bootloader', async () => {
+			const bootloader = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-bootloader@5.6.0.bin'));
+			const protectedBootloader = await createProtectedModule(bootloader);
+
+			expect(protectedBootloader.length).to.be.greaterThan(bootloader.length);
+			const infoBootloader = await parseModuleBinary(bootloader);
+			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
+
+			// Check some common fields which should be the same
+			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoProtectedBootloader.suffixInfo);
+			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
+					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			// P2 (RTL872x) bootloader grow right
+			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
+			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(infoBootloader.suffixInfo.extensions.length + 1);
+
+			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
+			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
+				length: 5,
+				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED
+			});
+			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		});
+
+		it('adds security extension with protected mode to Tracker bootloader', async () => {
+			const bootloader = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-bootloader@5.6.0.bin'));
+			const protectedBootloader = await createProtectedModule(bootloader);
+
+			expect(protectedBootloader.length).to.be.greaterThan(bootloader.length);
+			const infoBootloader = await parseModuleBinary(bootloader);
+			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
+
+			// Check some common fields which should be the same
+			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoProtectedBootloader.suffixInfo);
+			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
+					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			// Tracker (nRF52840) bootloader grow right
+			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
+			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(2);
+
+			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
+			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
+				length: 5,
+				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED
+			});
+			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		});
+
+		it('adds security extension with protected mode and certificate to P2 bootloader', async () => {
+			const bootloader = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'p2-bootloader@5.6.0.bin'));
+			const cert = genRandomBuffer(300);
+			const protectedBootloader = await createProtectedModule(bootloader, cert);
+
+			expect(protectedBootloader.length).to.be.greaterThan(bootloader.length);
+			const infoBootloader = await parseModuleBinary(bootloader);
+			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
+
+
+			// Check some common fields which should be the same
+			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoProtectedBootloader.suffixInfo);
+			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
+					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			// P2 (RTL872x) bootloader grow right
+			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
+			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(infoBootloader.suffixInfo.extensions.length + 1);
+
+			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
+			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
+				length: 5 + cert.length,
+				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED,
+				certificate: cert
+			});
+			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
+		});
+
+		it('adds security extension with protected mode and certificate to Tracker bootloader', async () => {
+			const bootloader = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-bootloader@5.6.0.bin'));
+			const cert = genRandomBuffer(300);
+			const protectedBootloader = await createProtectedModule(bootloader, cert);
+
+			expect(protectedBootloader.length).to.be.greaterThan(bootloader.length);
+			const infoBootloader = await parseModuleBinary(bootloader);
+			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
+
+			// Check some common fields which should be the same
+			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
+					.to.deep.equal(infoProtectedBootloader.suffixInfo);
+			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
+					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			// Tracker (nRF52840) bootloader grow right
+			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
+					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
+			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(2);
+
+			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
+			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
+				length: 5 + cert.length,
+				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED,
+				certificate: cert
+			});
+			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
 		});
 	});
 });
