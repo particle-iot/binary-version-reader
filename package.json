@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "engines": {
     "node": ">=12",
-    "npm": "8.x"
+    "npm": ">=8.x"
   },
   "dependencies": {
     "archiver": "^5.3.1",
