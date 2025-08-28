@@ -18,8 +18,8 @@ jobs:
           - false
         node_version:
           - 12
-          - 14
           - 16
+          - 22
         include:
           - node_version: 18
             experimental: true
