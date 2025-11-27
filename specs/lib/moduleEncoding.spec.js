@@ -898,7 +898,7 @@ describe('moduleEncoding', () => {
 	});
 
 	describe('createEnvVarsAssetModule', () => {
-		async function validateAsset(mod, vars, { snapshotHash, updatedAt, override } = {}) {
+		async function validateAsset(mod, vars, snapshot = undefined) {
 			const info = await parseModuleBinary(mod);
 			expect(info.crc.ok).to.be.true;
 			expect(info.prefixInfo).to.include({
@@ -913,60 +913,109 @@ describe('moduleEncoding', () => {
 			});
 			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
 			expect(ext).to.include({
-				assetType: override ? ModuleInfo.AssetType.ENV_VARS_OVERRIDE : ModuleInfo.AssetType.ENV_VARS_USER
+				assetType: snapshot ? ModuleInfo.AssetType.ENV_VARS_SNAPSHOT : ModuleInfo.AssetType.ENV_VARS_USER
 			});
 
 			const assetData = await unwrapAssetModule(mod);
 			const EnvVars = protobufSchema.system.EnvVars;
 			const pbMsg = EnvVars.toObject(EnvVars.decode(assetData), { longs: Number });
 
-			expect(pbMsg.vars).to.deep.equal(Object.entries(vars).map(([name, value]) => ({ name, value })));
-			if (snapshotHash !== undefined) {
-				if (!Buffer.isBuffer(snapshotHash)) {
-					snapshotHash = Buffer.from(snapshotHash, 'hex');
-				}
-				expect(pbMsg.hash.equals(snapshotHash)).to.be.true;
+			const varEntries = Object.entries(vars);
+			if (varEntries.length) {
+				expect(pbMsg.vars).to.deep.equal(varEntries.map(([name, value]) => ({ name, value })));
 			} else {
-				expect(pbMsg).not.to.have.property('hash');
+				expect(pbMsg).not.to.have.property('vars');
 			}
-			if (updatedAt !== undefined) {
+
+			if (snapshot) {
+				let hash = snapshot.hash;
+				if (!Buffer.isBuffer(hash)) {
+					hash = Buffer.from(hash, 'hex');
+				}
+				expect(pbMsg.hash.equals(hash)).to.be.true;
+
+				let updatedAt = snapshot.updatedAt;
 				if (typeof updatedAt !== 'number') {
 					updatedAt = Date.parse(updatedAt);
-					expect(updatedAt).not.to.be.NaN;
 				}
 				expect(pbMsg.updatedAt).to.equal(updatedAt);
 			} else {
+				expect(pbMsg).not.to.have.property('hash');
 				expect(pbMsg).not.to.have.property('updatedAt');
 			}
 		}
 
 		it('can encode user variables', async () => {
-			const mod = await createEnvVarsAssetModule({
+			const vars = {
 				'VAR1': 'abc',
 				'VAR2': '123'
-			});
-			await validateAsset(mod, {
-				'VAR1': 'abc',
-				'VAR2': '123'
-			});
+			};
+			const mod = await createEnvVarsAssetModule(vars);
+			await validateAsset(mod, vars);
 		});
 
 		it('can encode a snapshot of variables', async () => {
-			const mod = await createEnvVarsAssetModule({
+			const vars = {
 				'VAR1': 'abc',
 				'VAR2': '123'
-			}, {
-				snapshotHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-				updatedAt: Number.MAX_SAFE_INTEGER,
-				override: true
+			};
+			let mod = await createEnvVarsAssetModule(vars, {
+				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				updatedAt: 5000000001
 			});
-			await validateAsset(mod, {
-				'VAR1': 'abc',
-				'VAR2': '123'
-			}, {
-				snapshotHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-				updatedAt: Number.MAX_SAFE_INTEGER,
-				override: true
+			await validateAsset(mod, vars, {
+				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				updatedAt: 5000000001
+			});
+
+			mod = await createEnvVarsAssetModule(vars, {
+				hash: Buffer.from('abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc', 'hex'),
+				updatedAt: '1970-02-27T20:53:20.001Z'
+			});
+			await validateAsset(mod, vars, {
+				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				updatedAt: 5000000001
+			});
+		});
+
+		it('can encode an empty set of variables', async () => {
+			const mod = await createEnvVarsAssetModule({});
+			await validateAsset(mod, {});
+		});
+
+		describe('error handling', () => {
+			it('invalid variable name', async () => {
+				const msg = 'Invalid variable name: ';
+				await expect(createEnvVarsAssetModule({ '': '123' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ '1abc': '123' })).to.be.eventually.rejectedWith(Error, msg + '1abc');
+				await expect(createEnvVarsAssetModule({ 'abc$': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc$');
+			});
+
+			it('variable name is too long', async () => {
+				const msg = 'Variable name is too long: ';
+				await expect(createEnvVarsAssetModule({ ['a'.repeat(129)]: '123' })).to.be.eventually.rejectedWith(Error, msg + 'aaaaa');
+			});
+
+			it('variable value is not a string', async () => {
+				const msg = 'Variable value is not a string: ';
+				await expect(createEnvVarsAssetModule({ 'abc': 123 })).to.be.eventually.rejectedWith(Error, msg + 'abc');
+			});
+
+			it('invalid snapshot hash', async () => {
+				const msg = 'Invalid snapshot hash';
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(63) + '!', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: Buffer.from('11111111', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+			});
+
+			it('invalid snapshot timestamp', async () => {
+				const msg = 'Invalid snapshot timestamp';
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(64), updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(64), updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
+			});
+
+			it('asset exceeds the maximum size', async () => {
+				const msg = 'Asset exceeds the maximum size';
+				await expect(createEnvVarsAssetModule({ 'abc': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
 			});
 		});
 	});
