@@ -15,7 +15,8 @@ const {
 	sanitizeAddress,
 	isAssetValid,
 	AssetLimitError,
-	createProtectedModule
+	createProtectedModule,
+	createEnvVarsAssetModule
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -23,6 +24,7 @@ const { Flags: ModuleFlags, MODULE_PREFIX_SIZE, FunctionType, ModuleInfoExtensio
 const { createFirmwareBinary } = require('../../lib/firmwareTestHelper');
 const { config } = require ('../../lib/config');
 
+const { schema: protobufSchema } = require('@particle/device-os-protobuf');
 const crc32 = require('buffer-crc32');
 const chai = require('chai');
 const expect = chai.expect;
@@ -892,6 +894,80 @@ describe('moduleEncoding', () => {
 			});
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
+		});
+	});
+
+	describe('createEnvVarsAssetModule', () => {
+		async function validateAsset(mod, vars, { snapshotHash, updatedAt, override } = {}) {
+			const info = await parseModuleBinary(mod);
+			expect(info.crc.ok).to.be.true;
+			expect(info.prefixInfo).to.include({
+				moduleFunction: ModuleInfo.FunctionType.ASSET,
+				moduleFlags: ModuleFlags.DROP_MODULE_INFO // No compression
+			});
+
+			const extensions = info.suffixInfo.extensions;
+			let ext = findExtension(ModuleInfo.ExtensionType.NAME, extensions);
+			expect(ext).to.include({
+				name: 'env-vars'
+			});
+			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
+			expect(ext).to.include({
+				assetType: override ? ModuleInfo.AssetType.ENV_VARS_OVERRIDE : ModuleInfo.AssetType.ENV_VARS_USER
+			});
+
+			const assetData = await unwrapAssetModule(mod);
+			const EnvVars = protobufSchema.system.EnvVars;
+			const pbMsg = EnvVars.toObject(EnvVars.decode(assetData), { longs: Number });
+
+			expect(pbMsg.vars).to.deep.equal(Object.entries(vars).map(([name, value]) => ({ name, value })));
+			if (snapshotHash !== undefined) {
+				if (!Buffer.isBuffer(snapshotHash)) {
+					snapshotHash = Buffer.from(snapshotHash, 'hex');
+				}
+				expect(pbMsg.hash.equals(snapshotHash)).to.be.true;
+			} else {
+				expect(pbMsg).not.to.have.property('hash');
+			}
+			if (updatedAt !== undefined) {
+				if (typeof updatedAt !== 'number') {
+					updatedAt = Date.parse(updatedAt);
+					expect(updatedAt).not.to.be.NaN;
+				}
+				expect(pbMsg.updatedAt).to.equal(updatedAt);
+			} else {
+				expect(pbMsg).not.to.have.property('updatedAt');
+			}
+		}
+
+		it('can encode user variables', async () => {
+			const mod = await createEnvVarsAssetModule({
+				'VAR1': 'abc',
+				'VAR2': '123'
+			});
+			await validateAsset(mod, {
+				'VAR1': 'abc',
+				'VAR2': '123'
+			});
+		});
+
+		it('can encode a snapshot of variables', async () => {
+			const mod = await createEnvVarsAssetModule({
+				'VAR1': 'abc',
+				'VAR2': '123'
+			}, {
+				snapshotHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+				updatedAt: Number.MAX_SAFE_INTEGER,
+				override: true
+			});
+			await validateAsset(mod, {
+				'VAR1': 'abc',
+				'VAR2': '123'
+			}, {
+				snapshotHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+				updatedAt: Number.MAX_SAFE_INTEGER,
+				override: true
+			});
 		});
 	});
 });
