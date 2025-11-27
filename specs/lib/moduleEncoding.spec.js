@@ -960,20 +960,20 @@ describe('moduleEncoding', () => {
 				'VAR2': '123'
 			};
 			let mod = await createEnvVarsAssetModule(vars, {
-				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				hash: 'abbbbbbbbc',
 				updatedAt: 5000000001
 			});
 			await validateAsset(mod, vars, {
-				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				hash: 'abbbbbbbbc',
 				updatedAt: 5000000001
 			});
 
 			mod = await createEnvVarsAssetModule(vars, {
-				hash: Buffer.from('abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc', 'hex'),
+				hash: Buffer.from('abbbbbbbbc', 'hex'),
 				updatedAt: '1970-02-27T20:53:20.001Z'
 			});
 			await validateAsset(mod, vars, {
-				hash: 'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc',
+				hash: 'abbbbbbbbc',
 				updatedAt: 5000000001
 			});
 		});
@@ -1003,14 +1003,14 @@ describe('moduleEncoding', () => {
 
 			it('invalid snapshot hash', async () => {
 				const msg = 'Invalid snapshot hash';
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(63) + '!', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: Buffer.from('11111111', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
 			});
 
 			it('invalid snapshot timestamp', async () => {
 				const msg = 'Invalid snapshot timestamp';
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(64), updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '1'.repeat(64), updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
 			});
 
 			it('asset exceeds the maximum size', async () => {
