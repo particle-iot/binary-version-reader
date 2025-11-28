@@ -913,7 +913,7 @@ describe('moduleEncoding', () => {
 			});
 			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
 			expect(ext).to.include({
-				assetType: snapshot ? ModuleInfo.AssetType.ENV_VARS_SNAPSHOT : ModuleInfo.AssetType.ENV_VARS_USER
+				assetType: snapshot ? ModuleInfo.AssetType.ENV_VARS_SNAPSHOT : ModuleInfo.AssetType.ENV_VARS_APP
 			});
 
 			const assetData = await unwrapAssetModule(mod);
