@@ -15,7 +15,8 @@ const {
 	sanitizeAddress,
 	isAssetValid,
 	AssetLimitError,
-	createProtectedModule
+	createProtectedModule,
+	createEnvVarsAssetModule
 } = require('../../lib/moduleEncoding');
 
 const HalModuleParser = require('../../lib/HalModuleParser');
@@ -23,6 +24,7 @@ const { Flags: ModuleFlags, MODULE_PREFIX_SIZE, FunctionType, ModuleInfoExtensio
 const { createFirmwareBinary } = require('../../lib/firmwareTestHelper');
 const { config } = require ('../../lib/config');
 
+const { schema: protobufSchema } = require('@particle/device-os-protobuf');
 const crc32 = require('buffer-crc32');
 const chai = require('chai');
 const expect = chai.expect;
@@ -892,6 +894,129 @@ describe('moduleEncoding', () => {
 			});
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
+		});
+	});
+
+	describe('createEnvVarsAssetModule', () => {
+		async function validateAsset(mod, vars, snapshot = undefined) {
+			const info = await parseModuleBinary(mod);
+			expect(info.crc.ok).to.be.true;
+			expect(info.prefixInfo).to.include({
+				moduleFunction: ModuleInfo.FunctionType.ASSET,
+				moduleFlags: ModuleFlags.DROP_MODULE_INFO // No compression
+			});
+
+			const extensions = info.suffixInfo.extensions;
+			let ext = findExtension(ModuleInfo.ExtensionType.NAME, extensions);
+			expect(ext).to.include({
+				name: 'env-vars'
+			});
+			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
+			expect(ext).to.include({
+				assetType: snapshot ? ModuleInfo.AssetType.ENV_VARS_SNAPSHOT : ModuleInfo.AssetType.ENV_VARS_APP
+			});
+
+			const assetData = await unwrapAssetModule(mod);
+			const EnvVars = protobufSchema.system.EnvVars;
+			const pbMsg = EnvVars.toObject(EnvVars.decode(assetData), { longs: Number });
+
+			const varEntries = Object.entries(vars);
+			if (varEntries.length) {
+				expect(pbMsg.vars).to.deep.equal(varEntries.map(([name, value]) => ({ name, value })));
+			} else {
+				expect(pbMsg).not.to.have.property('vars');
+			}
+
+			if (snapshot) {
+				let hash = snapshot.hash;
+				if (!Buffer.isBuffer(hash)) {
+					hash = Buffer.from(hash, 'hex');
+				}
+				expect(pbMsg.hash.equals(hash)).to.be.true;
+
+				let updatedAt = snapshot.updatedAt;
+				if (typeof updatedAt !== 'number') {
+					updatedAt = Date.parse(updatedAt);
+				}
+				expect(pbMsg.updatedAt).to.equal(updatedAt);
+			} else {
+				expect(pbMsg).not.to.have.property('hash');
+				expect(pbMsg).not.to.have.property('updatedAt');
+			}
+		}
+
+		it('can encode user variables', async () => {
+			const vars = {
+				'VAR1': 'abc',
+				'VAR2': '123'
+			};
+			const mod = await createEnvVarsAssetModule(vars);
+			await validateAsset(mod, vars);
+		});
+
+		it('can encode a snapshot of variables', async () => {
+			const vars = {
+				'VAR1': 'abc',
+				'VAR2': '123'
+			};
+			let mod = await createEnvVarsAssetModule(vars, {
+				hash: 'abbbbbbbbc',
+				updatedAt: 5000000001
+			});
+			await validateAsset(mod, vars, {
+				hash: 'abbbbbbbbc',
+				updatedAt: 5000000001
+			});
+
+			mod = await createEnvVarsAssetModule(vars, {
+				hash: Buffer.from('abbbbbbbbc', 'hex'),
+				updatedAt: '1970-02-27T20:53:20.001Z'
+			});
+			await validateAsset(mod, vars, {
+				hash: 'abbbbbbbbc',
+				updatedAt: 5000000001
+			});
+		});
+
+		it('can encode an empty set of variables', async () => {
+			const mod = await createEnvVarsAssetModule({});
+			await validateAsset(mod, {});
+		});
+
+		describe('error handling', () => {
+			it('invalid variable name', async () => {
+				const msg = 'Invalid variable name: ';
+				await expect(createEnvVarsAssetModule({ '': '123' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ '1abc': '123' })).to.be.eventually.rejectedWith(Error, msg + '1abc');
+				await expect(createEnvVarsAssetModule({ 'abc$': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc$');
+			});
+
+			it('variable name is too long', async () => {
+				const msg = 'Variable name is too long: ';
+				await expect(createEnvVarsAssetModule({ ['a'.repeat(129)]: '123' })).to.be.eventually.rejectedWith(Error, msg + 'aaaaa');
+			});
+
+			it('variable value is not a string', async () => {
+				const msg = 'Variable value is not a string: ';
+				await expect(createEnvVarsAssetModule({ 'abc': 123 })).to.be.eventually.rejectedWith(Error, msg + 'abc');
+			});
+
+			it('invalid snapshot hash', async () => {
+				const msg = 'Invalid snapshot hash';
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+			});
+
+			it('invalid snapshot timestamp', async () => {
+				const msg = 'Invalid snapshot timestamp';
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
+			});
+
+			it('asset exceeds the maximum size', async () => {
+				const msg = 'Asset exceeds the maximum size';
+				await expect(createEnvVarsAssetModule({ 'abc': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
+			});
 		});
 	});
 });
