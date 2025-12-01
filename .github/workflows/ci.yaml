@@ -17,12 +17,8 @@ jobs:
         experimental:
           - false
         node_version:
-          - 12
           - 16
           - 22
-        include:
-          - node_version: 18
-            experimental: true
     steps:
       - uses: actions/checkout@v2
       - name: Setup node
