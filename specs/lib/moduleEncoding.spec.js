@@ -734,6 +734,16 @@ describe('moduleEncoding', () => {
 			}
 			return expect(createApplicationAndAssetBundle(application, assets)).to.be.rejectedWith(AssetLimitError, /Total size of assets exceeds/);
 		});
+
+		it('includes env vars into the bundle', async () => {
+			const vars = { KEY: 'value' };
+			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
+			const app = path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin');
+			const bundle = await createApplicationAndAssetBundle(app, [], vars);
+			const unpacked = await unpackApplicationAndAssetBundle(bundle);
+			expect(unpacked.vars.data).be.eql(vars);
+			expect(unpacked.assets.length).be.eql(1);
+		});
 	});
 
 	describe('isAssetValid', () => {
@@ -987,6 +997,7 @@ describe('moduleEncoding', () => {
 			it('invalid variable name', async () => {
 				const msg = 'Invalid variable name: ';
 				await expect(createEnvVarsAssetModule({ '': '123' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc');
 				await expect(createEnvVarsAssetModule({ '1abc': '123' })).to.be.eventually.rejectedWith(Error, msg + '1abc');
 				await expect(createEnvVarsAssetModule({ 'abc$': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc$');
 			});
@@ -998,24 +1009,24 @@ describe('moduleEncoding', () => {
 
 			it('variable value is not a string', async () => {
 				const msg = 'Variable value is not a string: ';
-				await expect(createEnvVarsAssetModule({ 'abc': 123 })).to.be.eventually.rejectedWith(Error, msg + 'abc');
+				await expect(createEnvVarsAssetModule({ 'ABC': 123 })).to.be.eventually.rejectedWith(Error, msg + 'ABC');
 			});
 
 			it('invalid snapshot hash', async () => {
 				const msg = 'Invalid snapshot hash';
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
 			});
 
 			it('invalid snapshot timestamp', async () => {
 				const msg = 'Invalid snapshot timestamp';
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'abc': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
 			});
 
 			it('asset exceeds the maximum size', async () => {
 				const msg = 'Asset exceeds the maximum size';
-				await expect(createEnvVarsAssetModule({ 'abc': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
 			});
 		});
 	});
