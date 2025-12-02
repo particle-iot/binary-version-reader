@@ -35,7 +35,7 @@ jobs:
           npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
           npm ci
         env:
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN_TEST }}
       - name: Run Tests
         run: |
           npm run test:ci
@@ -58,7 +58,7 @@ jobs:
           npm whoami
           npm ci
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN_TEST }}
       - name: Build & Publish Packages
         run: |
           npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
@@ -67,4 +67,4 @@ jobs:
           [[ $GITHUB_REF_NAME =~ ^v.*- ]] && NPM_TAG=--tag=beta
           npm publish $NPM_TAG
         env:
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN_TEST }}
