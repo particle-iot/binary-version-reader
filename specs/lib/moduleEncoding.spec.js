@@ -16,6 +16,7 @@ const {
 	isAssetValid,
 	AssetLimitError,
 	createProtectedModule,
+	encodeEnvVarsAsset,
 	createEnvVarsAssetModule
 } = require('../../lib/moduleEncoding');
 
@@ -991,6 +992,16 @@ describe('moduleEncoding', () => {
 		it('can encode an empty set of variables', async () => {
 			const mod = await createEnvVarsAssetModule({});
 			await validateAsset(mod, {});
+		});
+
+		it('can take a buffer with pre-encoded variables', async () => {
+			const vars = {
+				'VAR1': 'abc',
+				'VAR2': '123'
+			};
+			const data = await encodeEnvVarsAsset(vars);
+			const mod = await createEnvVarsAssetModule(data);
+			await validateAsset(mod, vars);
 		});
 
 		describe('error handling', () => {
