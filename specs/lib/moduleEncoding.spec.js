@@ -742,7 +742,7 @@ describe('moduleEncoding', () => {
 			const app = path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin');
 			const bundle = await createApplicationAndAssetBundle(app, [], vars);
 			const unpacked = await unpackApplicationAndAssetBundle(bundle);
-			expect(unpacked.vars.data).be.eql(vars);
+			expect(unpacked.env.data).be.eql(vars);
 			expect(unpacked.assets.length).be.eql(1);
 		});
 	});
@@ -920,7 +920,7 @@ describe('moduleEncoding', () => {
 			const extensions = info.suffixInfo.extensions;
 			let ext = findExtension(ModuleInfo.ExtensionType.NAME, extensions);
 			expect(ext).to.include({
-				name: 'env-vars'
+				name: 'env'
 			});
 			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
 			expect(ext).to.include({
