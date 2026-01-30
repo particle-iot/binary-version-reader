@@ -920,7 +920,7 @@ describe('moduleEncoding', () => {
 			const extensions = info.suffixInfo.extensions;
 			let ext = findExtension(ModuleInfo.ExtensionType.NAME, extensions);
 			expect(ext).to.include({
-				name: 'env-vars'
+				name: 'env'
 			});
 			ext = findExtension(ModuleInfo.ExtensionType.ASSET_TYPE, extensions);
 			expect(ext).to.include({
