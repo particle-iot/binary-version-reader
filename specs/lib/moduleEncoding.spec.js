@@ -1039,6 +1039,16 @@ describe('moduleEncoding', () => {
 				const msg = 'Asset exceeds the maximum size';
 				await expect(createEnvVarsAssetModule({ 'ABC': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
 			});
+
+
+			it('asset exceeds the maximum number of variables', async () => {
+				const msg = 'Number of variables exceeds the maximum of 100';
+				const vars = {};
+				for (let i = 0; i < 101; i++) {
+					vars['VAR' + i] = 'value';
+				}
+				await expect(createEnvVarsAssetModule(vars)).to.be.eventually.rejectedWith(Error, msg);
+			});
 		});
 	});
 });
