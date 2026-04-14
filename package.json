@@ -2,6 +2,10 @@
   "name": "binary-version-reader",
   "version": "4.0.2",
   "main": "main.js",
+  "exports": {
+    ".": "./main.js",
+    "./limited": "./limited.js"
+  },
   "license": "Apache-2.0",
   "engines": {
     "node": ">=12",
