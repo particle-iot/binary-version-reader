@@ -4,9 +4,7 @@
   "main": "main.js",
   "exports": {
     ".": "./main.js",
-    "./HalModuleParser": "./lib/HalModuleParser.js",
-    "./ModuleInfo": "./lib/ModuleInfo.js",
-    "./lib/*": "./lib/*"
+    "./limited": "./limited.js"
   },
   "license": "Apache-2.0",
   "engines": {
