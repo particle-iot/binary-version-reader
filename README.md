@@ -16,42 +16,54 @@ If you're building firmware on the Particle Platform, you might be curious to se
     });
 ```
 
-You can also get the raw output of binary-version-reader by using it as a command line tool without installing it.
+You can also inspect a firmware binary from the command line without installing the package:
 
 ```
 npx binary-version-reader your_binary.bin
+```
+
+The output is valid JSON, suitable for piping into other tools:
+
+```
+npx binary-version-reader your_binary.bin | jq '.prefixInfo.moduleVersion'
 ```
 
 ## Example output
 
 ```json
 {
-	"filename": "/.../040_user-part.bin",
-	"fileBuffer": "<Buffer ...>",
-	"crc": {
-		"ok": 1,
-		"storedCrc": "b138f375",
-		"actualCrc": "b138f375"
-	},
-	"prefixInfo": {
-		"moduleStartAddy": "80a0000",
-		"moduleEndAddy": "80a128c",
-		"moduleVersion": 2,
-		"platformID": 6,
-		"moduleFunction": 5,
-		"moduleIndex": 1,
-		"depModuleFunction": 4,
-		"depModuleIndex": 2,
-		"depModuleVersion": 1
-	},
-	"suffixInfo": {
-		"productId": -1,
-		"productVersion": -1,
-		"fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
-		"reserved": 0,
-		"suffixSize": 36,
-		"crcBlock": "b138f375"
-	}
+  "filename": "your_binary.bin",
+  "crc": {
+    "ok": true,
+    "storedCrc": "b138f375",
+    "actualCrc": "b138f375"
+  },
+  "prefixInfo": {
+    "moduleStartAddy": "80a0000",
+    "moduleEndAddy": "80a128c",
+    "reserved": 0,
+    "moduleFlags": 0,
+    "moduleVersion": 2,
+    "platformID": 6,
+    "moduleFunction": 5,
+    "moduleIndex": 1,
+    "depModuleFunction": 4,
+    "depModuleIndex": 2,
+    "depModuleVersion": 1,
+    "dep2ModuleFunction": 0,
+    "dep2ModuleIndex": 0,
+    "dep2ModuleVersion": 0,
+    "prefixSize": 24,
+    "prefixOffset": 0
+  },
+  "suffixInfo": {
+    "productId": -1,
+    "productVersion": -1,
+    "fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
+    "reserved": 0,
+    "suffixSize": 36,
+    "crcBlock": "b138f375"
+  }
 }
 ```
 
