@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 const {
 	updateModuleSha256,
 	updateModuleCrc32,
@@ -27,13 +28,6 @@ const { config } = require ('../../lib/config');
 
 const { schema: protobufSchema } = require('@particle/device-os-protobuf');
 const crc32 = require('buffer-crc32');
-const chai = require('chai');
-const expect = chai.expect;
-const chaiExclude = require('chai-exclude');
-chai.use(chaiExclude);
-
-const chaiAsPromised = require('chai-as-promised');
-chai.use(chaiAsPromised);
 
 const crypto = require('crypto');
 const path = require('path');
@@ -87,7 +81,7 @@ async function parseModuleBinary(data) {
 }
 
 function findExtension(type, extensions, fields) {
-	for (let ext of extensions) {
+	for (const ext of extensions) {
 		if (ext.type === type) {
 			if (fields) {
 				if (!Object.keys(fields).every(k => ext[k] === fields[k])) {
@@ -97,6 +91,50 @@ function findExtension(type, extensions, fields) {
 			return ext;
 		}
 	}
+}
+
+/**
+ * @param {object} value
+ * @param {string[]} keys
+ * @returns {object} A copy of `value` without `keys` at its top level
+ */
+function omit(value, keys) {
+	return Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
+}
+
+/**
+ * @param {unknown} value
+ * @param {string[]} keys
+ * @returns {unknown} A copy of `value` without `keys` in any nested object or array
+ */
+function omitDeep(value, keys) {
+	if (Array.isArray(value)) {
+		return value.map((item) => omitDeep(item, keys));
+	}
+	if (value && typeof value === 'object' && !Buffer.isBuffer(value)) {
+		return Object.fromEntries(Object.entries(value)
+			.filter(([key]) => !keys.includes(key))
+			.map(([key, item]) => [key, omitDeep(item, keys)]));
+	}
+	return value;
+}
+
+/**
+ * @param {object} actual
+ * @param {object} expected
+ * @param {string[]} keys Ignored at the top level of both objects
+ */
+function expectDeepEqualExcluding(actual, expected, keys) {
+	expect(omit(actual, keys)).to.deep.equal(omit(expected, keys));
+}
+
+/**
+ * @param {object} actual
+ * @param {object} expected
+ * @param {string[]} keys Ignored at any depth in both objects
+ */
+function expectDeepEqualExcludingEvery(actual, expected, keys) {
+	expect(omitDeep(actual, keys)).to.deep.equal(omitDeep(expected, keys));
 }
 
 describe('moduleEncoding', () => {
@@ -121,7 +159,7 @@ describe('moduleEncoding', () => {
 			};
 			bin.fill(0, 0, MODULE_PREFIX_SIZE);
 			updateModulePrefix(bin, prefixInfo);
-			let d = bin.slice(0, MODULE_PREFIX_SIZE);
+			let d = bin.subarray(0, MODULE_PREFIX_SIZE);
 			expect(d.toString('hex')).to.equal('11223344000000009900bbcc0000ff002200445500770000');
 			prefixInfo = {
 				// moduleStartAddy: 0x44332211,
@@ -141,12 +179,12 @@ describe('moduleEncoding', () => {
 			};
 			bin.fill(0, 0, MODULE_PREFIX_SIZE);
 			updateModulePrefix(bin, prefixInfo);
-			d = bin.slice(0, MODULE_PREFIX_SIZE);
+			d = bin.subarray(0, MODULE_PREFIX_SIZE);
 			expect(d.toString('hex')).to.equal('000000005566778800aa0000ddee00110033000066008899');
 		});
 
 		it('correctly updates test module binaries', async () => {
-			for (let file of TEST_BINARIES) {
+			for (const file of TEST_BINARIES) {
 				const origBin = fs.readFileSync(file);
 				const { prefixInfo } = await parseModuleBinary(origBin);
 				const bin = Buffer.from(origBin);
@@ -154,6 +192,12 @@ describe('moduleEncoding', () => {
 				updateModulePrefix(bin, prefixInfo);
 				expect(bin.equals(origBin)).to.be.true;
 			}
+		});
+
+		it('does not leak global variables', () => {
+			delete globalThis.addr;
+			updateModulePrefix(genModuleBinary(), { moduleStartAddy: 0x44332211, moduleEndAddy: 0x88776655 });
+			expect(globalThis).not.to.have.own.property('addr');
 		});
 	});
 
@@ -172,7 +216,7 @@ describe('moduleEncoding', () => {
 			const size = suffixInfo.suffixSize + 4; // Including CRC-32
 			bin.fill(0, offs, offs + size);
 			updateModuleSuffix(bin, suffixInfo);
-			let d = bin.slice(offs, offs + size);
+			let d = bin.subarray(offs, offs + size);
 			expect(d.toString('hex')).to.equal('1122000055660000000000000000000000000000000000000000000000000000000000000000280099aabbcc');
 			suffixInfo = {
 				// productId: 0x2211,
@@ -184,12 +228,12 @@ describe('moduleEncoding', () => {
 			};
 			bin.fill(0, offs, offs + size);
 			updateModuleSuffix(bin, suffixInfo);
-			d = bin.slice(offs, offs + size);
+			d = bin.subarray(offs, offs + size);
 			expect(d.toString('hex')).to.equal('000033440000778899aabbccddeeff112233445566778899aabbccddeeff1122334455667788280000000000');
 		});
 
 		it('correctly updates test module binaries', async () => {
-			for (let file of TEST_BINARIES) {
+			for (const file of TEST_BINARIES) {
 				const origBin = fs.readFileSync(file);
 				const { suffixInfo } = await parseModuleBinary(origBin);
 				const bin = Buffer.from(origBin);
@@ -236,7 +280,7 @@ describe('moduleEncoding', () => {
 			offs = header.writeUInt8(0, offs); // Compression method
 			offs = header.writeUInt8(14, offs); // Window size
 			offs = header.writeUInt32LE(bin.length, offs); // Original size
-			const h = comp.slice(MODULE_PREFIX_SIZE, MODULE_PREFIX_SIZE + header.length);
+			const h = comp.subarray(MODULE_PREFIX_SIZE, MODULE_PREFIX_SIZE + header.length);
 			expect(h.equals(header)).to.be.true;
 		});
 
@@ -244,9 +288,9 @@ describe('moduleEncoding', () => {
 			const bin = genModuleBinary();
 			const comp = await compressModule(bin);
 			let hash = crypto.createHash('sha256');
-			hash.update(comp.slice(0, comp.length - SHA256_OFFSET));
+			hash.update(comp.subarray(0, comp.length - SHA256_OFFSET));
 			hash = hash.digest();
-			const crc = crc32(comp.slice(0, comp.length - CRC32_OFFSET));
+			const crc = crc32(comp.subarray(0, comp.length - CRC32_OFFSET));
 			const info = await parseModuleBinary(comp);
 			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
 			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
@@ -269,7 +313,7 @@ describe('moduleEncoding', () => {
 		});
 
 		it('compress and decompress test module binaries successfully', async () => {
-			for (let file of TEST_BINARIES) {
+			for (const file of TEST_BINARIES) {
 				const orig = fs.readFileSync(file);
 				const comp = await compressModule(orig);
 				expect(comp.length).to.be.lessThan(orig.length);
@@ -303,15 +347,15 @@ describe('moduleEncoding', () => {
 			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
 			const comb = await combineModules([bin1, bin2, bin3]);
 			// Check 1st module
-			let buf = comb.slice(0, bin1.length);
+			let buf = comb.subarray(0, bin1.length);
 			prefix = (await parseModuleBinary(buf)).prefixInfo;
 			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.not.equal(0);
 			// Check 2nd module
-			buf = comb.slice(bin1.length, bin1.length + bin2.length);
+			buf = comb.subarray(bin1.length, bin1.length + bin2.length);
 			prefix = (await parseModuleBinary(buf)).prefixInfo;
 			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.not.equal(0);
 			// Check 3rd module
-			buf = comb.slice(bin1.length + bin2.length, bin1.length + bin2.length + bin3.length);
+			buf = comb.subarray(bin1.length + bin2.length, bin1.length + bin2.length + bin3.length);
 			prefix = (await parseModuleBinary(buf)).prefixInfo;
 			expect(prefix.moduleFlags & ModuleFlags.COMBINED).to.equal(0);
 		});
@@ -321,21 +365,21 @@ describe('moduleEncoding', () => {
 			const bin2 = genModuleBinary();
 			const comb = await combineModules([bin1, bin2]);
 			// 1st module
-			let buf = comb.slice(0, bin1.length);
+			let buf = comb.subarray(0, bin1.length);
 			let hash = crypto.createHash('sha256');
-			hash.update(buf.slice(0, buf.length - SHA256_OFFSET));
+			hash.update(buf.subarray(0, buf.length - SHA256_OFFSET));
 			hash = hash.digest();
-			let crc = crc32(buf.slice(0, buf.length - CRC32_OFFSET));
+			let crc = crc32(buf.subarray(0, buf.length - CRC32_OFFSET));
 			let info = await parseModuleBinary(buf);
 			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
 			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
 			expect(info.crc.ok).to.be.ok;
 			// 2nd module
-			buf = comb.slice(bin1.length, bin1.length + bin2.length);
+			buf = comb.subarray(bin1.length, bin1.length + bin2.length);
 			hash = crypto.createHash('sha256');
-			hash.update(buf.slice(0, buf.length - SHA256_OFFSET));
+			hash.update(buf.subarray(0, buf.length - SHA256_OFFSET));
 			hash = hash.digest();
-			crc = crc32(buf.slice(0, buf.length - CRC32_OFFSET));
+			crc = crc32(buf.subarray(0, buf.length - CRC32_OFFSET));
 			info = await parseModuleBinary(buf);
 			expect(info.suffixInfo.fwUniqueId).to.equal(hash.toString('hex'));
 			expect(info.suffixInfo.crcBlock).to.equal(crc.toString('hex'));
@@ -369,7 +413,7 @@ describe('moduleEncoding', () => {
 			const orig = [];
 			const maxFiles = 10;
 			let count = 0;
-			for (let file of TEST_BINARIES) {
+			for (const file of TEST_BINARIES) {
 				const d = fs.readFileSync(file);
 				orig.push(d);
 				if (++count >= maxFiles) {
@@ -388,7 +432,7 @@ describe('moduleEncoding', () => {
 			const orig = [];
 			const maxFiles = 5;
 			let count = 0;
-			for (let file of TEST_BINARIES) {
+			for (const file of TEST_BINARIES) {
 				const d = fs.readFileSync(file);
 				orig.push(d);
 				if (++count >= maxFiles) {
@@ -396,13 +440,13 @@ describe('moduleEncoding', () => {
 				}
 			}
 			const comp = [];
-			for (let d of orig) {
+			for (const d of orig) {
 				comp.push(await compressModule(d));
 			}
 			const comb = await combineModules(comp);
 			const uncomb = await splitCombinedModules(comb);
 			const uncomp = [];
-			for (let d of uncomb) {
+			for (const d of uncomb) {
 				uncomp.push(await decompressModule(d));
 			}
 			expect(uncomp.length).to.equal(orig.length);
@@ -417,7 +461,7 @@ describe('moduleEncoding', () => {
 			const bin = genModuleBinary();
 			const offs = bin.length - SHA256_OFFSET;
 			let hash = crypto.createHash('sha256');
-			hash.update(bin.slice(0, offs));
+			hash.update(bin.subarray(0, offs));
 			hash = hash.digest();
 			bin.fill(0, offs, offs + 32);
 			updateModuleSha256(bin);
@@ -430,7 +474,7 @@ describe('moduleEncoding', () => {
 		it('updates the CRC-32 checksum of a module', async () => {
 			const bin = genModuleBinary();
 			const offs = bin.length - CRC32_OFFSET;
-			const crc = crc32(bin.slice(0, offs));
+			const crc = crc32(bin.subarray(0, offs));
 			bin.fill(0, offs, offs + 4);
 			updateModuleCrc32(bin);
 			const { suffixInfo } = await parseModuleBinary(bin);
@@ -440,7 +484,7 @@ describe('moduleEncoding', () => {
 		describe('given that a custom CRC-32 function is provided globally', () => {
 			let defaultCrc32 = null;
 
-			before(() => {
+			beforeAll(() => {
 				defaultCrc32 = config().crc32;
 			});
 
@@ -462,7 +506,7 @@ describe('moduleEncoding', () => {
 
 	describe('asset management', () => {
 		it('wraps asset file into a module and unwraps it back to original successfully', async () => {
-			for (let file of TEST_ASSETS) {
+			for (const file of TEST_ASSETS) {
 				const origAsset = Buffer.from(fs.readFileSync(file));
 				const bin = await createAssetModule(origAsset, path.basename(file));
 				expect(bin.equals(origAsset)).to.be.false;
@@ -473,7 +517,7 @@ describe('moduleEncoding', () => {
 				expect(info.suffixInfo.extensions.length).to.be.greaterThan(1);
 				let name = null;
 				let hash = null;
-				for (let ext of info.suffixInfo.extensions) {
+				for (const ext of info.suffixInfo.extensions) {
 					if (ext.type === ModuleInfoExtension.NAME) {
 						name = ext.name;
 					} else if (ext.type === ModuleInfoExtension.HASH) {
@@ -492,7 +536,7 @@ describe('moduleEncoding', () => {
 		});
 
 		it('wraps asset file into a module and unwraps it back to original successfully with compression disabled', async () => {
-			for (let file of TEST_ASSETS) {
+			for (const file of TEST_ASSETS) {
 				const origAsset = Buffer.from(fs.readFileSync(file));
 				const bin = await createAssetModule(origAsset, path.basename(file), { compress: false });
 				expect(bin.equals(origAsset)).to.be.false;
@@ -503,7 +547,7 @@ describe('moduleEncoding', () => {
 				expect(info.suffixInfo.extensions.length).to.be.greaterThan(1);
 				let name = null;
 				let hash = null;
-				for (let ext of info.suffixInfo.extensions) {
+				for (const ext of info.suffixInfo.extensions) {
 					if (ext.type === ModuleInfoExtension.NAME) {
 						name = ext.name;
 					} else if (ext.type === ModuleInfoExtension.HASH) {
@@ -529,10 +573,8 @@ describe('moduleEncoding', () => {
 			const infoApplication = await parseModuleBinary(application);
 			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
 			// Check some common fields which should be the same
-			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data'])
-					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
-			expect(infoApplication.prefixInfo).excluding(['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags'])
-					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			expectDeepEqualExcludingEvery(infoApplication.suffixInfo, infoApplicationWithAssets.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data']);
+			expectDeepEqualExcluding(infoApplication.prefixInfo, infoApplicationWithAssets.prefixInfo, ['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags']);
 			// P2 (RTL872x) applications grow left
 			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleStartAddy))
 					.to.be.lessThan(sanitizeAddress(infoApplication.prefixInfo.moduleStartAddy));
@@ -540,7 +582,7 @@ describe('moduleEncoding', () => {
 			expect(findExtension(ModuleInfoExtension.DYNAMIC_LOCATION, infoApplicationWithAssets.suffixInfo.extensions).moduleStartAddress)
 					.to.equal(infoApplicationWithAssets.prefixInfo.moduleStartAddy);
 			expect(infoApplicationWithAssets.prefixInfo.extensions.length).to.be.greaterThan(assets.length);
-			for (let asset of assets) {
+			for (const asset of assets) {
 				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.prefixInfo.extensions, { name: asset.name });
 				expect(ext).to.not.be.undefined;
 				expect(ext.name).to.equal(asset.name);
@@ -560,15 +602,13 @@ describe('moduleEncoding', () => {
 			const infoApplication = await parseModuleBinary(application);
 			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
 			// Check some common fields which should be the same
-			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
-			expect(infoApplication.prefixInfo).excluding(['moduleEndAddy', 'prefixSize', 'moduleFlags'])
-					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			expectDeepEqualExcludingEvery(infoApplication.suffixInfo, infoApplicationWithAssets.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoApplication.prefixInfo, infoApplicationWithAssets.prefixInfo, ['moduleEndAddy', 'prefixSize', 'moduleFlags']);
 			// Tracker (nRF52840) applications grow right
 			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoApplication.prefixInfo.moduleEndAddy));
 			expect(infoApplicationWithAssets.suffixInfo.extensions.length).to.be.greaterThan(assets.length);
-			for (let asset of assets) {
+			for (const asset of assets) {
 				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.suffixInfo.extensions, { name: asset.name });
 				expect(ext).to.not.be.undefined;
 				expect(ext.name).to.equal(asset.name);
@@ -595,10 +635,8 @@ describe('moduleEncoding', () => {
 			const infoApplication = await parseModuleBinary(application);
 			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
 			// Check some common fields which should be the same
-			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data'])
-					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
-			expect(infoApplication.prefixInfo).excluding(['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags'])
-					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			expectDeepEqualExcludingEvery(infoApplication.suffixInfo, infoApplicationWithAssets.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'moduleStartAddress', 'data']);
+			expectDeepEqualExcluding(infoApplication.prefixInfo, infoApplicationWithAssets.prefixInfo, ['moduleStartAddy', 'extensions', 'prefixSize', 'moduleFlags']);
 			// P2 (RTL872x) applications grow left
 			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleStartAddy))
 					.to.be.lessThan(sanitizeAddress(infoApplication.prefixInfo.moduleStartAddy));
@@ -606,7 +644,7 @@ describe('moduleEncoding', () => {
 			expect(findExtension(ModuleInfoExtension.DYNAMIC_LOCATION, infoApplicationWithAssets.suffixInfo.extensions).moduleStartAddress)
 					.to.equal(infoApplicationWithAssets.prefixInfo.moduleStartAddy);
 			expect(infoApplicationWithAssets.prefixInfo.extensions.length).to.be.greaterThan(assets.length);
-			for (let asset of assets) {
+			for (const asset of assets) {
 				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.prefixInfo.extensions, { name: asset.name });
 				expect(ext).to.not.be.undefined;
 				expect(ext.name).to.equal(asset.name);
@@ -633,15 +671,13 @@ describe('moduleEncoding', () => {
 			const infoApplication = await parseModuleBinary(application);
 			const infoApplicationWithAssets = await parseModuleBinary(applicationWithAssets);
 			// Check some common fields which should be the same
-			expect(infoApplication.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoApplicationWithAssets.suffixInfo);
-			expect(infoApplication.prefixInfo).excluding(['moduleEndAddy', 'prefixSize', 'moduleFlags'])
-					.to.deep.equal(infoApplicationWithAssets.prefixInfo);
+			expectDeepEqualExcludingEvery(infoApplication.suffixInfo, infoApplicationWithAssets.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoApplication.prefixInfo, infoApplicationWithAssets.prefixInfo, ['moduleEndAddy', 'prefixSize', 'moduleFlags']);
 			// Tracker (nRF52840) applications grow right
 			expect(sanitizeAddress(infoApplicationWithAssets.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoApplication.prefixInfo.moduleEndAddy));
 			expect(infoApplicationWithAssets.suffixInfo.extensions.length).to.be.greaterThan(assets.length);
-			for (let asset of assets) {
+			for (const asset of assets) {
 				const ext = findExtension(ModuleInfoExtension.ASSET_DEPENDENCY, infoApplicationWithAssets.suffixInfo.extensions, { name: asset.name });
 				expect(ext).to.not.be.undefined;
 				expect(ext.name).to.equal(asset.name);
@@ -716,12 +752,16 @@ describe('moduleEncoding', () => {
 					name: genRandomBuffer(127).toString('hex')
 				});
 			}
-			return expect(createApplicationAndAssetBundle(application, assets)).to.be.rejectedWith(AssetLimitError, 'Resulting module exceeds platform size limits');
+			const result = createApplicationAndAssetBundle(application, assets);
+			await expect(result).rejects.toThrow(AssetLimitError);
+			await expect(result).rejects.toThrow('Resulting module exceeds platform size limits');
 		});
 
 		it('throws an error when asset exceeds maximum single asset size limit on Tracker platform', async () => {
 			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
-			return expect(createApplicationAndAssetBundle(application, [{ data: genRandomBuffer(10 * 1024 * 1024), name: 'test.bin' }])).to.be.rejectedWith(AssetLimitError, /maximum single asset size limit/);
+			const result = createApplicationAndAssetBundle(application, [{ data: genRandomBuffer(10 * 1024 * 1024), name: 'test.bin' }]);
+			await expect(result).rejects.toThrow(AssetLimitError);
+			await expect(result).rejects.toThrow(/maximum single asset size limit/);
 		});
 
 		it('throws an error when assets exceed total maximum size of assets on Tracker platform', async () => {
@@ -733,7 +773,9 @@ describe('moduleEncoding', () => {
 					name: genRandomBuffer(127).toString('hex')
 				});
 			}
-			return expect(createApplicationAndAssetBundle(application, assets)).to.be.rejectedWith(AssetLimitError, /Total size of assets exceeds/);
+			const result = createApplicationAndAssetBundle(application, assets);
+			await expect(result).rejects.toThrow(AssetLimitError);
+			await expect(result).rejects.toThrow(/Total size of assets exceeds/);
 		});
 
 		it('includes env vars into the bundle', async () => {
@@ -801,21 +843,19 @@ describe('moduleEncoding', () => {
 			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
 
 			// Check some common fields which should be the same
-			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoProtectedBootloader.suffixInfo);
-			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
-					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			expectDeepEqualExcludingEvery(infoBootloader.suffixInfo, infoProtectedBootloader.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoBootloader.prefixInfo, infoProtectedBootloader.prefixInfo, ['moduleEndAddy']);
 			// P2 (RTL872x) bootloader grow right
 			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
 			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(infoBootloader.suffixInfo.extensions.length + 1);
 
 			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
-			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+			expectDeepEqualExcluding(ext, {
 				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
 				length: 5,
 				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED
-			});
+			}, ['data', 'offset']);
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 		});
 
@@ -828,21 +868,19 @@ describe('moduleEncoding', () => {
 			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
 
 			// Check some common fields which should be the same
-			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoProtectedBootloader.suffixInfo);
-			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
-					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			expectDeepEqualExcludingEvery(infoBootloader.suffixInfo, infoProtectedBootloader.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoBootloader.prefixInfo, infoProtectedBootloader.prefixInfo, ['moduleEndAddy']);
 			// Tracker (nRF52840) bootloader grow right
 			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
 			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(2);
 
 			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
-			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+			expectDeepEqualExcluding(ext, {
 				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
 				length: 5,
 				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED
-			});
+			}, ['data', 'offset']);
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 		});
 
@@ -857,22 +895,20 @@ describe('moduleEncoding', () => {
 
 
 			// Check some common fields which should be the same
-			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoProtectedBootloader.suffixInfo);
-			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
-					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			expectDeepEqualExcludingEvery(infoBootloader.suffixInfo, infoProtectedBootloader.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoBootloader.prefixInfo, infoProtectedBootloader.prefixInfo, ['moduleEndAddy']);
 			// P2 (RTL872x) bootloader grow right
 			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
 			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(infoBootloader.suffixInfo.extensions.length + 1);
 
 			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
-			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+			expectDeepEqualExcluding(ext, {
 				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
 				length: 5 + cert.length,
 				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED,
 				certificate: cert
-			});
+			}, ['data', 'offset']);
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
 		});
@@ -887,22 +923,20 @@ describe('moduleEncoding', () => {
 			const infoProtectedBootloader = await parseModuleBinary(protectedBootloader);
 
 			// Check some common fields which should be the same
-			expect(infoBootloader.suffixInfo).excludingEvery(['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize'])
-					.to.deep.equal(infoProtectedBootloader.suffixInfo);
-			expect(infoBootloader.prefixInfo).excluding(['moduleEndAddy'])
-					.to.deep.equal(infoProtectedBootloader.prefixInfo);
+			expectDeepEqualExcludingEvery(infoBootloader.suffixInfo, infoProtectedBootloader.suffixInfo, ['crcBlock', 'fwUniqueId', 'offset', 'extensions', 'suffixSize']);
+			expectDeepEqualExcluding(infoBootloader.prefixInfo, infoProtectedBootloader.prefixInfo, ['moduleEndAddy']);
 			// Tracker (nRF52840) bootloader grow right
 			expect(sanitizeAddress(infoProtectedBootloader.prefixInfo.moduleEndAddy))
 					.to.be.greaterThan(sanitizeAddress(infoBootloader.prefixInfo.moduleEndAddy));
 			expect(infoProtectedBootloader.suffixInfo.extensions.length).to.equal(2);
 
 			const ext = findExtension(ModuleInfoExtension.SECURITY_MODE, infoProtectedBootloader.suffixInfo.extensions);
-			expect(ext).excluding(['data', 'offset']).to.deep.equal({
+			expectDeepEqualExcluding(ext, {
 				type: ModuleInfo.ModuleInfoExtension.SECURITY_MODE,
 				length: 5 + cert.length,
 				securityMode: ModuleInfo.ModuleInfoSecurityMode.PROTECTED,
 				certificate: cert
-			});
+			}, ['data', 'offset']);
 			expect(infoProtectedBootloader.security.mode).to.equal(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 			expect(infoProtectedBootloader.security.certificate).to.deep.equal(cert);
 		});
@@ -1007,37 +1041,37 @@ describe('moduleEncoding', () => {
 		describe('error handling', () => {
 			it('invalid variable name', async () => {
 				const msg = 'Invalid variable name: ';
-				await expect(createEnvVarsAssetModule({ '': '123' })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'abc': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc');
-				await expect(createEnvVarsAssetModule({ '1abc': '123' })).to.be.eventually.rejectedWith(Error, msg + '1abc');
-				await expect(createEnvVarsAssetModule({ 'abc$': '123' })).to.be.eventually.rejectedWith(Error, msg + 'abc$');
+				await expect(createEnvVarsAssetModule({ '': '123' })).rejects.toThrow(msg);
+				await expect(createEnvVarsAssetModule({ 'abc': '123' })).rejects.toThrow(msg + 'abc');
+				await expect(createEnvVarsAssetModule({ '1abc': '123' })).rejects.toThrow(msg + '1abc');
+				await expect(createEnvVarsAssetModule({ 'abc$': '123' })).rejects.toThrow(msg + 'abc$');
 			});
 
 			it('variable name is too long', async () => {
 				const msg = 'Variable name is too long: ';
-				await expect(createEnvVarsAssetModule({ ['a'.repeat(129)]: '123' })).to.be.eventually.rejectedWith(Error, msg + 'aaaaa');
+				await expect(createEnvVarsAssetModule({ ['a'.repeat(129)]: '123' })).rejects.toThrow(msg + 'aaaaa');
 			});
 
 			it('variable value is not a string', async () => {
 				const msg = 'Variable value is not a string: ';
-				await expect(createEnvVarsAssetModule({ 'ABC': 123 })).to.be.eventually.rejectedWith(Error, msg + 'ABC');
+				await expect(createEnvVarsAssetModule({ 'ABC': 123 })).rejects.toThrow(msg + 'ABC');
 			});
 
 			it('invalid snapshot hash', async () => {
 				const msg = 'Invalid snapshot hash';
-				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '', updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '', updatedAt: 1 })).rejects.toThrow(msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: Buffer.from('not a hash', 'hex'), updatedAt: 1 })).rejects.toThrow(msg);
 			});
 
 			it('invalid snapshot timestamp', async () => {
 				const msg = 'Invalid snapshot timestamp';
-				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: -1 })).to.be.eventually.rejectedWith(Error, msg);
-				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: -1 })).rejects.toThrow(msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '123' }, { hash: '11111111', updatedAt: '2025-12-31T23:59:60.999Z' })).rejects.toThrow(msg);
 			});
 
 			it('asset exceeds the maximum size', async () => {
 				const msg = 'Asset exceeds the maximum size';
-				await expect(createEnvVarsAssetModule({ 'ABC': '1'.repeat(20000) })).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule({ 'ABC': '1'.repeat(20000) })).rejects.toThrow(msg);
 			});
 
 
@@ -1047,7 +1081,7 @@ describe('moduleEncoding', () => {
 				for (let i = 0; i < 101; i++) {
 					vars['VAR' + i] = 'value';
 				}
-				await expect(createEnvVarsAssetModule(vars)).to.be.eventually.rejectedWith(Error, msg);
+				await expect(createEnvVarsAssetModule(vars)).rejects.toThrow(msg);
 			});
 		});
 	});
