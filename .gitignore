@@ -30,3 +30,8 @@ node_modules
 .idea
 
 tmp
+
+# Generated type declarations
+/main.d.ts
+/limited.d.ts
+/lib/*.d.ts

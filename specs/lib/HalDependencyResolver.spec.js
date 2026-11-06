@@ -1,4 +1,5 @@
 'use strict';
+import { describe, it, expect } from 'vitest';
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -19,15 +20,12 @@
  * Created by middleca on 6/18/15.
  */
 
-var fs = require('fs');
-var path = require('path');
-var should = require('should');
-var extend = require('xtend');
-var HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
-var FirmwareModule = require('../../lib/FirmwareModule');
-var expect = require('chai').expect;
+const fs = require('fs');
+const path = require('path');
+const HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
+const FirmwareModule = require('../../lib/FirmwareModule');
 
-var settings = {
+const settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
@@ -35,65 +33,80 @@ var settings = {
 describe('HalDependencyResolver', function() {
 
 
+	it('logs and skips a module that fails to parse', async function() {
+		const resolver = new HalDependencyResolver();
+		const errors = [];
+		const originalConsoleError = console.error;
+		console.error = (...args) => errors.push(args);
+		try {
+			await resolver.assimilateModule(path.join(settings.binaries, 'emptybin.bin'));
+		} finally {
+			console.error = originalConsoleError;
+		}
+		expect(errors).to.have.lengthOf(1);
+		expect(errors[0][1]).to.be.an('error').with.property('message').that.includes('was empty');
+		expect(resolver._moduleStorage).to.eql([]);
+	});
+
 	it('repairs errors in module names and versions', function() {
-		var photonReportedModules = require('./../describes/describe.json.js').m;
-		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		const photonReportedModules = require('./../describes/describe.json.js').m;
+		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
 
-		var resolver = new HalDependencyResolver();
-		var result = resolver._repairDescribeErrors(photonReportedModules);
+		const resolver = new HalDependencyResolver();
+		const result = resolver._repairDescribeErrors(photonReportedModules);
 
-		should(result).eql(fixedTestData);
+		expect(result).eql(fixedTestData);
 	});
 
 	it('converts binary metadata into describe format', function() {
-		var userPrefixInfo = {
+		const userPrefixInfo = {
 			depModuleFunction: 4,
 			depModuleIndex: 2,
 			depModuleVersion: 1
 		};
 
-		var expectedDescribe = {
+		const expectedDescribe = {
 			f: 's',
 			n: '2',
 			v: 1
 		};
 
-		var resolver = new HalDependencyResolver();
-		var result = resolver._binaryDepsToDescribe(userPrefixInfo);
+		const resolver = new HalDependencyResolver();
+		const result = resolver._binaryDepsToDescribe(userPrefixInfo);
 
-		should(result).eql(expectedDescribe);
+		expect(result).eql(expectedDescribe);
 	});
 
 
 	it('walk a dependency chain nicely', function() {
-		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
-		var safeBinaryReqs = {
+		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		const safeBinaryReqs = {
 			f: 's',
 			n: '2',
 			v: 1
 		};
 
-		var resolver = new HalDependencyResolver();
-		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
-		should(arr).eql([]);
+		const resolver = new HalDependencyResolver();
+		const arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
+		expect(arr).eql([]);
 	});
 
 	it('flag a module for update when out of version', function() {
-		var fixedTestData = require('./../describes/fixed_describe.json.js').m;
-		var systemPart2 = fixedTestData[2];
+		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		const systemPart2 = fixedTestData[2];
 
-		var safeBinaryReqs = {
+		const safeBinaryReqs = {
 			f: 's',
 			n: '2',
 			v: systemPart2.v + 1
 		};
 
-		var shouldBeMissing = extend(fixedTestData[2], { v: systemPart2.v + 1, d: [] });
+		const shouldBeMissing = { ...fixedTestData[2], v: systemPart2.v + 1, d: [] };
 
-		var resolver = new HalDependencyResolver();
-		var arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
-		should(arr.length).eql(1);
-		should(arr[0]).eql(shouldBeMissing);
+		const resolver = new HalDependencyResolver();
+		const arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
+		expect(arr.length).eql(1);
+		expect(arr[0]).eql(shouldBeMissing);
 	});
 
 
@@ -120,112 +133,112 @@ describe('HalDependencyResolver', function() {
 	 */
 	it('passes a full test', async function() {
 
-		var resolver = new HalDependencyResolver();
+		const resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, '../binaries/040_system-part1.bin');
-		var part2 = path.join(settings.binaries, '../binaries/040_system-part2.bin');
+		const part1 = path.join(settings.binaries, '../binaries/040_system-part1.bin');
+		const part2 = path.join(settings.binaries, '../binaries/040_system-part2.bin');
 
 		// load those modules in!
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
-		var oldDescribe = require(describeFilename).m;
+		const describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
+		const oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, '../binaries/040_user-part.bin');
-		var fileBuffer = fs.readFileSync(userFirmware);
+		const userFirmware = path.join(settings.binaries, '../binaries/040_user-part.bin');
+		const fileBuffer = fs.readFileSync(userFirmware);
 
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
 		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-		should(result).be.ok;
+		expect(result).be.ok;
 		console.log('dependency resolve result had ', result.length, ' items ');
-		should(result.length).eql(2);
+		expect(result.length).eql(2);
 
 		//the first thing should be part1, and the second thing part2
 
-		should(result[0].filename).endWith('system-part1.bin');
-		should(result[1].filename).endWith('system-part2.bin');
+		expect(result[0].filename).to.match(/system-part1\.bin$/);
+		expect(result[1].filename).to.match(/system-part2\.bin$/);
 	});
 
 	it('recommend modules when going from 042 to 043', async function() {
 
-		var resolver = new HalDependencyResolver();
+		const resolver = new HalDependencyResolver();
 
-		var part1 = path.join(settings.binaries, '../binaries/043_system-part1.bin');
-		var part2 = path.join(settings.binaries, '../binaries/043_system-part2.bin');
+		const part1 = path.join(settings.binaries, '../binaries/043_system-part1.bin');
+		const part2 = path.join(settings.binaries, '../binaries/043_system-part2.bin');
 
 		// load those modules in!
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
 
 
-		var describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
-		var oldDescribe = require(describeFilename).m;
+		const describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
+		const oldDescribe = require(describeFilename).m;
 
-		var userFirmware = path.join(settings.binaries, '../binaries/043_user-part.bin');
-		var fileBuffer = fs.readFileSync(userFirmware);
+		const userFirmware = path.join(settings.binaries, '../binaries/043_user-part.bin');
+		const fileBuffer = fs.readFileSync(userFirmware);
 
 		//
 		// given a describe message from a device, and some user firmware, get the modules we need to run it.
 		//
 		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-		should(result).be.ok;
+		expect(result).be.ok;
 		console.log('dependency resolve result had ', result.length, ' items ');
-		should(result.length).eql(2);
+		expect(result.length).eql(2);
 
 		//the first thing should be part1, and the second thing part2
 
-		should(result[0].filename).endWith('system-part1.bin');
-		should(result[1].filename).endWith('system-part2.bin');
+		expect(result[0].filename).to.match(/system-part1\.bin$/);
+		expect(result[1].filename).to.match(/system-part2\.bin$/);
 	});
 
 	it('rejects when detects missing dependencies', async function(){
-		var userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
-		var resolver = new HalDependencyResolver();
+		const userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
+		const resolver = new HalDependencyResolver();
 
-		var deps = resolver.findAnyMissingDependencies(userModuleSafeMode);
-		should(deps).be.ok;
-		should(deps.length).eql(1);
-		should(deps[0].f).eql('s');
-		should(deps[0].n).eql('2');
-		should(deps[0].v).eql(8);
+		const deps = resolver.findAnyMissingDependencies(userModuleSafeMode);
+		expect(deps).be.ok;
+		expect(deps.length).eql(1);
+		expect(deps[0].f).eql('s');
+		expect(deps[0].n).eql('2');
+		expect(deps[0].v).eql(8);
 
 		try {
 			await resolver.userModuleHasMissingDependencies(userModuleSafeMode);
 			new Error("Should have rejected: " + result);
 		} catch (err) {
 			console.log('!!!!!!!got error as expected', err)
-			should(err).be.ok;
-			should(err.length).eql(1);
+			expect(err).be.ok;
+			expect(err.length).eql(1);
 
 			// show me the module that needs replacing!
-			err[0].func.should.eql('s');
-			err[0].name.should.eql('2');
-			err[0].version.should.eql(8);
+			expect(err[0].func).to.eql('s');
+			expect(err[0].name).to.eql('2');
+			expect(err[0].version).to.eql(8);
 		}
 	});
 
 	it('resolves when dependencies are met', async function(){
-		var data = require('./../describes/fixed_dependencies_describe.json.js');
-		var resolver = new HalDependencyResolver();
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+		const resolver = new HalDependencyResolver();
 
 
-		var deps = resolver.findAnyMissingDependencies(data);
-		should(deps).be.ok;
-		should(deps.length).eql(0);
+		const deps = resolver.findAnyMissingDependencies(data);
+		expect(deps).be.ok;
+		expect(deps.length).eql(0);
 
 		return resolver.userModuleHasMissingDependencies(data);
 	});
 
 	it('solves firmware module', function(){
-		var data = require('./../describes/fixed_dependencies_describe.json.js');
-		var resolver = new HalDependencyResolver();
-		var module = new FirmwareModule({
+		const data = require('./../describes/fixed_dependencies_describe.json.js');
+		const resolver = new HalDependencyResolver();
+		const module = new FirmwareModule({
 			d: [
 				{
 					f: 's',
@@ -235,32 +248,32 @@ describe('HalDependencyResolver', function() {
 			]
 		});
 
-		var result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
-		result.should.eql([]);
+		let result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
+		expect(result).to.eql([]);
 
-		var requiredVersion = 5;
+		const requiredVersion = 5;
 		module.dependencies[0].version = requiredVersion;
 		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
-		result.length.should.eql(1);
-		result[0].v.should.eql(requiredVersion);
+		expect(result.length).to.eql(1);
+		expect(result[0].v).to.eql(requiredVersion);
 	});
 
 	it('finds missing dependencies for example 1', async function() {
-		var data = require('./../describes/safe_mode_1.json.js');
-		var resolver = new HalDependencyResolver();
-		var results = resolver.findAnyMissingDependencies(data);
+		const data = require('./../describes/safe_mode_1.json.js');
+		const resolver = new HalDependencyResolver();
+		const results = resolver.findAnyMissingDependencies(data);
 
-		should(results).be.ok;
-		should(results.length).be.greaterThan(0);
+		expect(results).be.ok;
+		expect(results.length).be.greaterThan(0);
 
-		var shouldBeMissing = data.m[2].d[0];
-		var dep = results[0];
+		const shouldBeMissing = data.m[2].d[0];
+		const dep = results[0];
 
 
 		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
-		should(dep.f).eql(shouldBeMissing.f);
-		should(dep.n).eql(shouldBeMissing.n);
-		should(dep.v).eql(shouldBeMissing.v);
+		expect(dep.f).eql(shouldBeMissing.f);
+		expect(dep.n).eql(shouldBeMissing.n);
+		expect(dep.v).eql(shouldBeMissing.v);
 	});
 
 
@@ -269,14 +282,14 @@ describe('HalDependencyResolver', function() {
 	 */
 	it('handles missing user module appropriately', async function() {
 
-		var describe = require('./../describes/describe_no_usermodule.js');
-		var resolver = new HalDependencyResolver();
+		const describe = require('./../describes/describe_no_usermodule.js');
+		const resolver = new HalDependencyResolver();
 
 
 		// should have nothing missing
-		var deps = resolver.findAnyMissingDependencies(describe);
-		should(deps).be.ok;
-		should(deps.length).eql(0);
+		const deps = resolver.findAnyMissingDependencies(describe);
+		expect(deps).be.ok;
+		expect(deps.length).eql(0);
 
 		// should resolve
 		return resolver.userModuleHasMissingDependencies(describe);
@@ -287,18 +300,18 @@ describe('HalDependencyResolver', function() {
 	 */
 	it('handles missing user module with missing stuff appropriately', async function() {
 
-		var describe = require('./../describes/describe_no_usermodule2.js');
-		var resolver = new HalDependencyResolver();
+		const describe = require('./../describes/describe_no_usermodule2.js');
+		const resolver = new HalDependencyResolver();
 
 
 		// should have nothing missing
-		var deps = resolver.findAnyMissingDependencies(describe);
-		should(deps).be.ok;
-		should(deps.length).eql(1);
+		const deps = resolver.findAnyMissingDependencies(describe);
+		expect(deps).be.ok;
+		expect(deps.length).eql(1);
 
-		should(deps[0].f).eql('s');
-		should(deps[0].n).eql('1');
-		should(deps[0].v).eql(3);
+		expect(deps[0].f).eql('s');
+		expect(deps[0].n).eql('1');
+		expect(deps[0].v).eql(3);
 
 		// should resolve without finding anything, because this describe has no usermodule.
 		return resolver.userModuleHasMissingDependencies(describe);
@@ -306,14 +319,14 @@ describe('HalDependencyResolver', function() {
 
 	it('handles weird double-safe-mode case', async function() {
 
-		var describe = require('./../describes/safe_mode_3.json.js');
-		var resolver = new HalDependencyResolver();
+		const describe = require('./../describes/safe_mode_3.json.js');
+		const resolver = new HalDependencyResolver();
 
 
 		// should have nothing missing
-		var deps = resolver.findAnyMissingDependencies(describe);
-		should(deps).be.ok;
-		should(deps.length).eql(2);
+		const deps = resolver.findAnyMissingDependencies(describe);
+		expect(deps).be.ok;
+		expect(deps.length).eql(2);
 
 		// since we're processing the modules in listed order, and since I think
 		// they're also sorta in dependency order (part1 comes before part2), I think we're okay here.
@@ -327,19 +340,19 @@ describe('HalDependencyResolver', function() {
 
 	it('handles multiple dependencies', async function() {
 
-		var describe = require('./../describes/multiple_dependencies.json.js');
-		var resolver = new HalDependencyResolver();
+		const describe = require('./../describes/multiple_dependencies.json.js');
+		const resolver = new HalDependencyResolver();
 
 
-		var deps = resolver.findAnyMissingDependencies(describe);
-		should(deps).be.ok;
-		should(deps.length).eql(1);
+		const deps = resolver.findAnyMissingDependencies(describe);
+		expect(deps).be.ok;
+		expect(deps.length).eql(1);
 
 		// The missing dependency is a bootloader
-		var m = describe.m[2].d[1];
-		should(deps[0].f).eql(m.f);
-		should(deps[0].n).eql(m.n);
-		should(deps[0].v).eql(m.v);
+		const m = describe.m[2].d[1];
+		expect(deps[0].f).eql(m.f);
+		expect(deps[0].n).eql(m.n);
+		expect(deps[0].v).eql(m.v);
 	});
 
 

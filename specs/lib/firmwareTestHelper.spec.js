@@ -1,5 +1,5 @@
 'use strict';
-const expect = require('chai').expect;
+import { describe, it, expect } from 'vitest';
 const firmwareTestHelper = require('../../lib/firmwareTestHelper');
 const HalModuleParser = require('../../lib/HalModuleParser');
 const ModuleInfo = require('../../lib/ModuleInfo');
