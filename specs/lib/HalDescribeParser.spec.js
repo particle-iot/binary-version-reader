@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -14,25 +15,24 @@
  *  limitations under the License.
  */
 
-var fs = require('fs');
-var expect = require('chai').expect;
+const fs = require('fs');
 
-var FirmwareModule = require('../../lib/FirmwareModule');
-var HalDescribeParser = require('../../lib/HalDescribeParser');
+const FirmwareModule = require('../../lib/FirmwareModule');
+const HalDescribeParser = require('../../lib/HalDescribeParser');
 
 describe('Describe parser', function() {
 	describe('getModules', function(){
 		it('returns null when describe is incorrect', function(){
-			var parser = new HalDescribeParser();
+			const parser = new HalDescribeParser();
 			expect(parser.getModules()).be.null;
 			expect(parser.getModules({})).be.null;
 			expect(parser.getModules({m: 'foo'})).be.null;
 		});
 
 		it('returns FirmwareModules from describe', function(){
-			var data = require('./../describes/fixed_dependencies_describe.json.js');
-			var parser = new HalDescribeParser();
-			var results = parser.getModules(data);
+			const data = require('./../describes/fixed_dependencies_describe.json.js');
+			const parser = new HalDescribeParser();
+			const results = parser.getModules(data);
 			expect(results).length(5);
 			expect(results[0] instanceof FirmwareModule).be.true;
 		});
@@ -40,28 +40,28 @@ describe('Describe parser', function() {
 
 	describe('getSystemVersion', function(){
 		it('returns null when describe is incorrect', function(){
-			var parser = new HalDescribeParser();
+			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion()).be.null;
 		});
 
 		it('returns first system module version', function(){
-			var data = require('./../describes/safe_mode_1.json.js');
-			var parser = new HalDescribeParser();
+			const data = require('./../describes/safe_mode_1.json.js');
+			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(6);
 		});
 
 		it('returns system version for three modules', function(){
-			var data = require('./../describes/three_system_modules.json.js');
-			var parser = new HalDescribeParser();
+			const data = require('./../describes/three_system_modules.json.js');
+			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(19);
 		});
 
 		it('works with three modules and firmware reset', function(){
-			var data = require('./../describes/three_system_modules_with_firmware_reset.json.js');
-			var parser = new HalDescribeParser();
+			const data = require('./../describes/three_system_modules_with_firmware_reset.json.js');
+			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(202);
-			var modules = parser.getModules(data);
-			var restoreModule = modules.filter(function(module){
+			const modules = parser.getModules(data);
+			const restoreModule = modules.filter(function(module){
 				return module.isFactoryLocation();
 			})[0];
 			expect(restoreModule).to.not.be.undefined;

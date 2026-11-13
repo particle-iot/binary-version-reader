@@ -16,6 +16,17 @@ If you're building firmware on the Particle Platform, you might be curious to se
     });
 ```
 
+The package ships TypeScript declarations, generated from the JSDoc in `lib/`. Types for parse results live on the classes that produce them:
+
+```ts
+import { HalModuleParser, ModuleInfo } from 'binary-version-reader';
+
+const fileInfo: HalModuleParser.FileInfo = await new HalModuleParser().parseBuffer({ fileBuffer });
+if (fileInfo.prefixInfo.depModuleFunction === ModuleInfo.FunctionType.SYSTEM_PART) {
+	console.log(fileInfo.prefixInfo.depModuleVersion);
+}
+```
+
 You can also inspect a firmware binary from the command line without installing the package:
 
 ```

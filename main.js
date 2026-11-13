@@ -18,16 +18,90 @@
  * Created by middleca on 6/11/15.
  */
 
-const moduleEncoding = require('./lib/moduleEncoding');
-const config = require('./lib/config');
+const HalModuleParser = require('./lib/HalModuleParser.js');
+const HalDescribeParser = require('./lib/HalDescribeParser.js');
+const HalDependencyResolver = require('./lib/HalDependencyResolver.js');
+const FirmwareModule = require('./lib/FirmwareModule.js');
+const ModuleInfo = require('./lib/ModuleInfo.js');
+const firmwareTestHelper = require('./lib/firmwareTestHelper');
+const {
+	updateModuleSha256,
+	updateModuleCrc32,
+	updateModulePrefix,
+	updateModuleSuffix,
+	compressModule,
+	decompressModule,
+	combineModules,
+	splitCombinedModules,
+	createAssetModule,
+	updateModuleAssetDependencies,
+	unwrapAssetModule,
+	createApplicationAndAssetBundle,
+	unpackApplicationAndAssetBundle,
+	sanitizeAddress,
+	isAssetValid,
+	validateAssetLimits,
+	AssetLimitError,
+	PlatformLimitError,
+	createProtectedModule,
+	addModuleExtensions,
+	removeModuleExtensions,
+	listModuleExtensions,
+	encodeEnvVarsAsset,
+	createEnvVarsAssetModule,
+	ENV_ASSET_NAME,
+	ENV_JSON_FILE,
+	MAX_ENV_SIZE
+} = require('./lib/moduleEncoding');
+const { globalConfig, config } = require('./lib/config');
+
+/**
+ * @typedef {import('./lib/moduleEncoding').ModuleExtensionInput} ModuleExtensionInput
+ * @typedef {import('./lib/moduleEncoding').PrefixInput} PrefixInput
+ * @typedef {import('./lib/moduleEncoding').SuffixInput} SuffixInput
+ * @typedef {import('./lib/moduleEncoding').NamedData} NamedData
+ * @typedef {import('./lib/moduleEncoding').AssetDependencyInput} AssetDependencyInput
+ * @typedef {import('./lib/moduleEncoding').ProcessedAsset} ProcessedAsset
+ * @typedef {import('./lib/moduleEncoding').AssetLimitDetails} AssetLimitDetails
+ * @typedef {import('./lib/moduleEncoding').UnpackedBundle} UnpackedBundle
+ * @typedef {import('./lib/moduleEncoding').EnvVarsSnapshot} EnvVarsSnapshot
+ * @typedef {import('./lib/config').Config} Config
+ */
 
 module.exports = {
-  HalModuleParser: require('./lib/HalModuleParser.js'),
-  HalDescribeParser: require('./lib/HalDescribeParser.js'),
-  HalDependencyResolver: require('./lib/HalDependencyResolver.js'),
-  FirmwareModule: require('./lib/FirmwareModule.js'),
-  ModuleInfo: require('./lib/ModuleInfo.js'),
-  firmwareTestHelper: require('./lib/firmwareTestHelper'),
-  ...moduleEncoding,
-  ...config
+	HalModuleParser,
+	HalDescribeParser,
+	HalDependencyResolver,
+	FirmwareModule,
+	ModuleInfo,
+	firmwareTestHelper,
+	updateModuleSha256,
+	updateModuleCrc32,
+	updateModulePrefix,
+	updateModuleSuffix,
+	compressModule,
+	decompressModule,
+	combineModules,
+	splitCombinedModules,
+	createAssetModule,
+	updateModuleAssetDependencies,
+	unwrapAssetModule,
+	createApplicationAndAssetBundle,
+	unpackApplicationAndAssetBundle,
+	sanitizeAddress,
+	isAssetValid,
+	validateAssetLimits,
+	AssetLimitError,
+	PlatformLimitError,
+	createProtectedModule,
+	addModuleExtensions,
+	removeModuleExtensions,
+	listModuleExtensions,
+	encodeEnvVarsAsset,
+	createEnvVarsAssetModule,
+	ENV_ASSET_NAME,
+	ENV_JSON_FILE,
+	MAX_ENV_SIZE,
+	globalConfig,
+	config
 };

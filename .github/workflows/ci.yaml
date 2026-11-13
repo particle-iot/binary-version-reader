@@ -17,8 +17,8 @@ jobs:
         experimental:
           - false
         node_version:
-          - 16
           - 22
+          - 26
     steps:
       - uses: actions/checkout@v2
       - name: Setup node
@@ -26,10 +26,6 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
           registry-url: 'https://registry.npmjs.org'
-      - name: Install npm v8
-        if: ${{ matrix.node_version <= 12 }}
-        run: |
-          npm install -g npm@8
       - name: Install Dependencies
         run: |
           npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
@@ -50,7 +46,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '22'
           cache: 'npm'
       - name: Install Dependencies
         run: |
