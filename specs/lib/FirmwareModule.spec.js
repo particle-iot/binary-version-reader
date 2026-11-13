@@ -38,6 +38,28 @@ describe('FirmwareModule', function(){
 	});
 
 	it('should set validation flags', function(){
+		let module = new FirmwareModule({
+			vc: 62,
+			vv: 60
+		});
+
+		expect(module.isValid()).to.eql(false);
+		expect(module.hasIntegrity()).to.eql(false);
+
+		module = new FirmwareModule({ vv: 58 });
+		expect(module.areDependenciesValid()).to.eql(false);
+
+		module = new FirmwareModule({ vv: 54 });
+		expect(module.isImageAddressInRange()).to.eql(false);
+
+		module = new FirmwareModule({ vv: 46 });
+		expect(module.isImagePlatformValid()).to.eql(false);
+
+		module = new FirmwareModule({ vv: 30 });
+		expect(module.isImageProductValid()).to.eql(false);
+	});
+
+	it('checks each ModuleInfo.ValidationFlags bit', function(){
 		const { INTEGRITY, DEPENDENCIES, RANGE, PLATFORM, PRODUCT } = ModuleInfo.ValidationFlags;
 		const all = INTEGRITY | DEPENDENCIES | RANGE | PLATFORM | PRODUCT;
 		let module = new FirmwareModule({
