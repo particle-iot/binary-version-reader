@@ -31,26 +31,38 @@ describe('FirmwareModule', function(){
 		expect(module.isImageProductValid()).to.eql(false);
 	});
 
+	it('exposes module function characters indexed by function type', function(){
+		const module = new FirmwareModule();
+		expect(module.moduleFunctions).to.equal(ModuleInfo.FunctionToChar);
+		expect(module.moduleFunctions[ModuleInfo.FunctionType.SYSTEM_PART]).to.equal('s');
+	});
+
 	it('should set validation flags', function(){
+		const { INTEGRITY, DEPENDENCIES, RANGE, PLATFORM, PRODUCT } = ModuleInfo.ValidationFlags;
+		const all = INTEGRITY | DEPENDENCIES | RANGE | PLATFORM | PRODUCT;
 		let module = new FirmwareModule({
-			vc: 62,
-			vv: 60
+			vc: all,
+			vv: all & ~INTEGRITY
 		});
 
 		expect(module.isValid()).to.eql(false);
 		expect(module.hasIntegrity()).to.eql(false);
 
-		module = new FirmwareModule({ vv: 58 });
+		module = new FirmwareModule({ vv: all & ~DEPENDENCIES });
 		expect(module.areDependenciesValid()).to.eql(false);
+		expect(module.hasIntegrity()).to.eql(true);
 
-		module = new FirmwareModule({ vv: 54 });
+		module = new FirmwareModule({ vv: all & ~RANGE });
 		expect(module.isImageAddressInRange()).to.eql(false);
+		expect(module.areDependenciesValid()).to.eql(true);
 
-		module = new FirmwareModule({ vv: 46 });
+		module = new FirmwareModule({ vv: all & ~PLATFORM });
 		expect(module.isImagePlatformValid()).to.eql(false);
+		expect(module.isImageAddressInRange()).to.eql(true);
 
-		module = new FirmwareModule({ vv: 30 });
+		module = new FirmwareModule({ vv: all & ~PRODUCT });
 		expect(module.isImageProductValid()).to.eql(false);
+		expect(module.isImagePlatformValid()).to.eql(true);
 	});
 
 	it('should not parse null/undefined describe', function(){
