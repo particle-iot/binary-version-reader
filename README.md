@@ -2,7 +2,7 @@
 
 If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware! This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
 
-[![Build Status](https://github.com/particle-iot/binary-version-reader/actions/workflows/ci.yaml/badge.svg)](https://github.com/particle-iot/binary-version-reader/actions)
+[![CircleCI](https://circleci.com/gh/particle-iot/binary-version-reader/tree/master.svg?style=shield)](https://circleci.com/gh/particle-iot/binary-version-reader/tree/master)
 
 ## Usage
 
