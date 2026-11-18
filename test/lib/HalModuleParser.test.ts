@@ -31,9 +31,8 @@ const settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
-
 describe('HalModuleParser', function () {
-	it('should fail gracefully when the file doesn\'t exist or is empty', async function () {
+	it("should fail gracefully when the file doesn't exist or is empty", async function () {
 		const filename = path.join(settings.binaries, 'emptybin.bin');
 		const parser = new HalModuleParser();
 		try {
@@ -47,7 +46,6 @@ describe('HalModuleParser', function () {
 		const parser = new HalModuleParser();
 		return parser._loadFile(filename);
 	});
-
 
 	it('should validate the CRC in the binary', async function () {
 		const filename = path.join(settings.binaries, '040_system-part1.bin');
@@ -209,7 +207,6 @@ describe('HalModuleParser', function () {
 		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
 	});
 
-
 	it('should read suffix info from the user part', async function () {
 		const filename = path.join(settings.binaries, '040_user-part.bin');
 		const expectedSuffixInfo = {
@@ -227,7 +224,6 @@ describe('HalModuleParser', function () {
 		expect(fileInfo.crc.ok).be.ok;
 		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
 	});
-
 
 	it('should read info from a bootloader module', async function () {
 		const filename = path.join(settings.binaries, 'RC4_bootloader_pad_BM-09.bin');
@@ -481,13 +477,25 @@ describe('HalModuleParser', function () {
 			let offset = 0;
 			offset = buffer.writeUInt32LE(module.moduleStartAddy, offset);
 			offset = buffer.writeUInt32LE(module.moduleEndAddy, offset);
-			offset = buffer.writeUInt16LE(0, offset);       // reserved
+			offset = buffer.writeUInt16LE(0, offset); // reserved
 			offset = buffer.writeUInt16LE(module.moduleVersion, offset);
 			offset = buffer.writeUInt16LE(module.platformID, offset);
 			offset = buffer.writeUInt8(module.moduleFunction, offset);
 			offset = buffer.writeUInt8(module.moduleIndex, offset);
-			offset = writeModuleDependency(buffer, offset, module.depModuleFunction, module.depModuleIndex, module.depModuleVersion);
-			writeModuleDependency(buffer, offset, module.dep2ModuleFunction, module.dep2ModuleIndex, module.dep2ModuleVersion);
+			offset = writeModuleDependency(
+				buffer,
+				offset,
+				module.depModuleFunction,
+				module.depModuleIndex,
+				module.depModuleVersion
+			);
+			writeModuleDependency(
+				buffer,
+				offset,
+				module.dep2ModuleFunction,
+				module.dep2ModuleIndex,
+				module.dep2ModuleVersion
+			);
 			return buffer;
 		}
 
@@ -521,7 +529,6 @@ describe('HalModuleParser', function () {
 			dep2ModuleFunction: 252,
 			dep2ModuleIndex: 252,
 			dep2ModuleVersion: 3456
-
 		};
 
 		beforeEach(function () {
@@ -547,9 +554,7 @@ describe('HalModuleParser', function () {
 			it('parses the 2nd module version as 16-bits LE', function () {
 				expect(module).have.property('dep2ModuleVersion').eql(3456);
 			});
-
 		});
-
 	});
 
 	it('allows parsing prefix and suffix info separately', function () {
@@ -582,7 +587,8 @@ describe('HalModuleParser', function () {
 		};
 		const fileBuffer = fs.readFileSync(file);
 		const parser = new HalModuleParser();
-		return parser.parsePrefix({ fileBuffer: fileBuffer })
+		return parser
+			.parsePrefix({ fileBuffer: fileBuffer })
 			.then(function (fileInfo) {
 				expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
 				expect(fileInfo).not.have.property('suffixInfo');
@@ -591,7 +597,7 @@ describe('HalModuleParser', function () {
 			.then(function (fileInfo) {
 				expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
 				expect(fileInfo).not.have.property('prefixInfo');
-			})
+			});
 	});
 
 	describe('given that a custom CRC-32 function is provided globally', function () {
@@ -613,10 +619,9 @@ describe('HalModuleParser', function () {
 				}
 			});
 			const parser = new HalModuleParser();
-			return parser.parseBuffer({ fileBuffer: createFirmwareBinary() })
-				.then(function (fileInfo) {
-					expect(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
-				});
+			return parser.parseBuffer({ fileBuffer: createFirmwareBinary() }).then(function (fileInfo) {
+				expect(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
+			});
 		});
 	});
 
@@ -659,13 +664,15 @@ describe('HalModuleParser', function () {
 			crcBlock: '0e3d4f63',
 			extensions: [
 				{
-					data: Buffer.from([0x02, 0x00, 0x10, 0x00, 0x00, 0xe0, 0x5f, 0x08, 0x88, 0xe0, 0x5f, 0x08, 0x48, 0xee, 0x3f, 0x02]),
+					data: Buffer.from([
+						0x02, 0x00, 0x10, 0x00, 0x00, 0xe0, 0x5f, 0x08, 0x88, 0xe0, 0x5f, 0x08, 0x48, 0xee, 0x3f, 0x02
+					]),
 					length: 16,
 					offset: 8126,
 					type: 2,
 					dynalibLoadAddress: '85fe088',
 					dynalibStartAddress: '23fee48',
-					moduleStartAddress: '85fe000',
+					moduleStartAddress: '85fe000'
 				},
 				{
 					data: Buffer.from([0x01, 0x00, 0xa, 0x00, 0xff, 0xff, 0x20, 0x00, 0xef, 0xbe]),
@@ -673,7 +680,7 @@ describe('HalModuleParser', function () {
 					offset: 8142,
 					type: 1,
 					productId: 32,
-					productVersion: 48879,
+					productVersion: 48879
 				}
 			]
 		};
@@ -708,12 +715,9 @@ describe('HalModuleParser', function () {
 					length: 58,
 					offset: 24,
 					data: Buffer.from([
-						18,   0,  58,   0,   0,  32,  18,  76, 146, 237, 146,
-						22, 238,  70,  25,  17, 158, 200, 218,  26, 135,  12,
-						53,  45,   6, 148,  31, 106, 180, 144, 175, 125, 151,
-						71, 218, 165,  71, 224,  49,  48,  51,  95, 115, 121,
-						115, 116, 101, 109,  45, 112,  97, 114, 116,  49,  46,
-						98, 105, 110
+						18, 0, 58, 0, 0, 32, 18, 76, 146, 237, 146, 22, 238, 70, 25, 17, 158, 200, 218, 26, 135, 12, 53, 45, 6, 148,
+						31, 106, 180, 144, 175, 125, 151, 71, 218, 165, 71, 224, 49, 48, 51, 95, 115, 121, 115, 116, 101, 109, 45,
+						112, 97, 114, 116, 49, 46, 98, 105, 110
 					]),
 					hashType: 0,
 					hashLength: 32,
@@ -725,11 +729,8 @@ describe('HalModuleParser', function () {
 					length: 49,
 					offset: 82,
 					data: Buffer.from([
-						18,   0,  49,   0,   0,  32, 123, 176,   1, 176,
-						109, 187, 202,   6, 232, 237,  46,  92, 120, 192,
-						203, 172,  89, 165, 142,   8, 247,  64, 221, 198,
-						183, 106,  69,  53,  55, 160,  61,  46, 117, 110,
-						107, 110, 111, 119, 110,  46,  98, 105, 110
+						18, 0, 49, 0, 0, 32, 123, 176, 1, 176, 109, 187, 202, 6, 232, 237, 46, 92, 120, 192, 203, 172, 89, 165, 142,
+						8, 247, 64, 221, 198, 183, 106, 69, 53, 55, 160, 61, 46, 117, 110, 107, 110, 111, 119, 110, 46, 98, 105, 110
 					]),
 					hashType: 0,
 					hashLength: 32,
@@ -740,7 +741,7 @@ describe('HalModuleParser', function () {
 					type: 0,
 					length: 5,
 					offset: 131,
-					data: Buffer.from([ 0, 0, 5, 0, 0 ])
+					data: Buffer.from([0, 0, 5, 0, 0])
 				}
 			],
 			prefixOffset: 0
@@ -757,11 +758,7 @@ describe('HalModuleParser', function () {
 					type: 2,
 					length: 16,
 					offset: 49198,
-					data: Buffer.from([
-							2,  0,  16,  0, 144, 63,
-						95,  8, 136, 64,  95,  8,
-						248, 81,  63,  2
-					]),
+					data: Buffer.from([2, 0, 16, 0, 144, 63, 95, 8, 136, 64, 95, 8, 248, 81, 63, 2]),
 					moduleStartAddress: '85f3f90',
 					dynalibLoadAddress: '85f4088',
 					dynalibStartAddress: '23f51f8'
@@ -770,10 +767,7 @@ describe('HalModuleParser', function () {
 					type: 1,
 					length: 10,
 					offset: 49214,
-					data: Buffer.from([
-							1,  0, 10, 0, 255,
-						255, 32,  0, 4,   0
-					]),
+					data: Buffer.from([1, 0, 10, 0, 255, 255, 32, 0, 4, 0]),
 					productId: 32,
 					productVersion: 4
 				}
@@ -824,7 +818,7 @@ describe('HalModuleParser', function () {
 				hash: '3a54bbfb74733253df7adcc8a0e475e934c18636f44f7c94dbeb056a98d9b563',
 				hashType: 0,
 				name: 'km4_image2_all.bin'
-			}			
+			}
 		];
 		expect(parsed.assets).eql(expectedAssets);
 	});

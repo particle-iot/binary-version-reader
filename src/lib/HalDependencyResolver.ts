@@ -46,7 +46,6 @@ const ModuleInfo = require('./ModuleInfo');
  * any missing modules you might need to run that firmware.  **phew!**
  */
 class HalDependencyResolver {
-
 	/**
 	 * expects a fileBuffer and the JSON describe payload for the 'm'
 	 * modules array
@@ -94,12 +93,12 @@ class HalDependencyResolver {
 
 		const modules = await this.solve(describe, fileInfo.prefixInfo);
 		let updates = [];
-		if (modules && (modules.length > 0)) {
+		if (modules && modules.length > 0) {
 			updates = await this.retrieveModules(modules);
 		}
 
-		if (!updates || (updates.length <= 0)) {
-			return []; 	//'no updates available'
+		if (!updates || updates.length <= 0) {
+			return []; //'no updates available'
 		}
 
 		// go figure out if the updates we found
@@ -109,12 +108,11 @@ class HalDependencyResolver {
 			promises.push(promise);
 		}
 
-		return Promise.all(promises)
-			.then(function(arr) {
+		return Promise.all(promises).then(
+			function (arr) {
 				for (let j = 0; j < arr.length; j++) {
 					const resvArr = arr[j];
-					if (resvArr && (resvArr.length > 0)) {
-
+					if (resvArr && resvArr.length > 0) {
 						//NOTE: the photon isn't accepting updates in this order
 						// part1, part2, user
 						// insert these new dependencies at the start of the array
@@ -127,11 +125,11 @@ class HalDependencyResolver {
 				}
 				return updates;
 			},
-			function() {
+			function () {
 				return updates;
-			});
+			}
+		);
 	}
-
 
 	/*
 		so, lets take our typical path:
@@ -162,7 +160,6 @@ class HalDependencyResolver {
 		// if we suggest a file,
 		// we need to be able to grab that file and re-process it.
 	  */
-
 
 	/**
 	 * go read in the file, parse the data for it, convert its precious
@@ -204,7 +201,7 @@ class HalDependencyResolver {
 			return null;
 		}
 
-		if (!modules || (modules.length <= 0)) {
+		if (!modules || modules.length <= 0) {
 			return null;
 		}
 
@@ -213,7 +210,6 @@ class HalDependencyResolver {
 		// expecting something like...
 		// { f: "s", n: "2", v: 2 }
 
-
 		//iterate over our requirements
 		for (let i = 0; i < modules.length; i++) {
 			const m = modules[i];
@@ -221,11 +217,9 @@ class HalDependencyResolver {
 			//iterate over what's available
 			for (let a = 0; a < this._moduleStorage.length; a++) {
 				const module = this._moduleStorage[a];
-				const avail = module.describe;	//grab the converted bits
+				const avail = module.describe; //grab the converted bits
 
-				const isMatch = ((avail.n === m.n)
-					&& (avail.f === m.f)
-					&& (avail.v >= m.v));
+				const isMatch = avail.n === m.n && avail.f === m.f && avail.v >= m.v;
 
 				//console.log('comparing ', m, avail);
 
@@ -237,9 +231,6 @@ class HalDependencyResolver {
 		}
 		return results;
 	}
-
-
-
 
 	/**
 	 * given what modules are 'described' as being on a photon,
@@ -255,7 +246,7 @@ class HalDependencyResolver {
 		const safeBinaryRequires = this._binaryDepsToDescribe(binaryInfo);
 		const safeBinaryRequires2 = this._binaryDepsToDescribe(binaryInfo, 2);
 
-		const result =  this._walkChain(safeDeviceModules, safeBinaryRequires);
+		const result = this._walkChain(safeDeviceModules, safeBinaryRequires);
 		this._walkChain(safeDeviceModules, safeBinaryRequires2, result);
 		return result;
 	}
@@ -301,7 +292,7 @@ class HalDependencyResolver {
 		}
 
 		if (!userModule) {
-			return "no user module";
+			return 'no user module';
 		}
 
 		//return this._getModuleFirstDependecy(modules, userModule);
@@ -310,19 +301,18 @@ class HalDependencyResolver {
 			const dep = userModule.d[i];
 
 			const deps = this._walkChain(describe.m, dep);
-			if (deps && (deps.length > 0)) {
+			if (deps && deps.length > 0) {
 				// this function only originally returned one dependency.
 				throw [new FirmwareModule(deps[0])];
 			}
 		}
 
-
-//		if (deps && (deps.length > 0)) {
-//			return when.reject(new FirmwareModule(deps[0]));
-//		}
-//		else {
-			return "nothing missing";
-//		}
+		//		if (deps && (deps.length > 0)) {
+		//			return when.reject(new FirmwareModule(deps[0]));
+		//		}
+		//		else {
+		return 'nothing missing';
+		//		}
 	}
 
 	/**
@@ -347,7 +337,7 @@ class HalDependencyResolver {
 		let allDeps = [];
 		const modules = describe.m;
 
-		for(let i=0;i<modules.length;i++) {
+		for (let i = 0; i < modules.length; i++) {
 			const checkModule = modules[i];
 
 			if (checkModule.l === 'f' && !(options && options.includeFactoryFirmware)) {
@@ -358,18 +348,18 @@ class HalDependencyResolver {
 			// they'll never cause safe mode as a result of their requirements,
 			// and they're probably referenced by other things
 
-			for(let d = 0; d < checkModule.d.length; d++) {
+			for (let d = 0; d < checkModule.d.length; d++) {
 				const moduleNeeds = checkModule.d[d];
 
 				// what things do we need that we don't have?
 				const deps = this._walkChain(modules, moduleNeeds);
-				if (deps && (deps.length > 0)) {
+				if (deps && deps.length > 0) {
 					allDeps = allDeps.concat(deps);
 				}
 			}
 		}
 
-		const keyFn = function(dep) {
+		const keyFn = function (dep) {
 			return [dep.f, dep.n, dep.v || ''].join('_');
 		};
 		return utilities.dedupArray(allDeps, keyFn);
@@ -431,7 +421,7 @@ class HalDependencyResolver {
 			arr.push(missing);
 
 			// if we're updating this, we better check its dependencies too.
-			if (foundModule.d && (foundModule.d.length > 0)) {
+			if (foundModule.d && foundModule.d.length > 0) {
 				//oh no!  this module has dependencies!
 				// do we have to update those too?
 				// (this doesn't fully make sense to me right now, but lets go with it.)
@@ -444,7 +434,6 @@ class HalDependencyResolver {
 
 		return arr;
 	}
-
 
 	/**
 	 * for modules in 'location:main'
@@ -464,7 +453,6 @@ class HalDependencyResolver {
 	_repairDescribeErrors(describeInfo) {
 		const arr = describeInfo;
 
-
 		// we're assuming the modules are in the reported order,
 		// which should be dependency order.
 
@@ -483,7 +471,7 @@ class HalDependencyResolver {
 			}
 
 			// are we the first thing and we don't have a name?
-			if ((i === 0) && (!item.n)) {
+			if (i === 0 && !item.n) {
 				item.n = i + '';
 			}
 
@@ -498,7 +486,7 @@ class HalDependencyResolver {
 
 			if (lastItem.n && !item.n) {
 				//last one had a name, and I don't have a name.
-				item.n = (parseInt(lastItem.n) + 1) + '';
+				item.n = parseInt(lastItem.n) + 1 + '';
 
 				if (!item.f) {
 					// was missing a function designation
@@ -512,7 +500,6 @@ class HalDependencyResolver {
 		}
 		return describeInfo;
 	}
-
 
 	/**
 	 * the binary prefix contains a numeric value for its dependent
@@ -529,22 +516,22 @@ class HalDependencyResolver {
 
 		switch (moduleFunction) {
 			case 0:
-				result = null;	// undefined / none?
+				result = null; // undefined / none?
 				break;
 			case 1:
 				result = '1_unknown';
 				break;
 			case 2:
-				result = 'b';	// bootloader?
+				result = 'b'; // bootloader?
 				break;
 			case 3:
-				result = '3_unknown';		//monolithic?
+				result = '3_unknown'; //monolithic?
 				break;
 			case 4:
-				result = 's';	// system?
+				result = 's'; // system?
 				break;
 			case 5:
-				result = 'u';	// user?
+				result = 'u'; // user?
 				break;
 
 			default:
@@ -568,8 +555,8 @@ class HalDependencyResolver {
 		const result = {};
 		dep = dep || 1;
 		let depString = '';
-		if (dep>1) {
-			depString = ''+dep;
+		if (dep > 1) {
+			depString = '' + dep;
 		}
 		if (!binaryInfo) {
 			return result;
@@ -583,15 +570,15 @@ class HalDependencyResolver {
 			const value = binaryInfo[key];
 
 			switch (key) {
-				case 'dep'+depString+'ModuleFunction':
+				case 'dep' + depString + 'ModuleFunction':
 					result.f = this._modFuncToChar(value);
 					break;
 
-				case 'dep'+depString+'ModuleIndex':
+				case 'dep' + depString + 'ModuleIndex':
 					result.n = value + '';
 					break;
 
-				case 'dep'+depString+'ModuleVersion':
+				case 'dep' + depString + 'ModuleVersion':
 					result.v = value;
 					break;
 			}
@@ -614,9 +601,9 @@ class HalDependencyResolver {
 		if (!binaryInfo) {
 			return null;
 		}
-//		else if (typeof binaryInfo !== 'object') {
-//			console.log('HERE', binaryInfo);
-//		}
+		//		else if (typeof binaryInfo !== 'object') {
+		//			console.log('HERE', binaryInfo);
+		//		}
 
 		/** @type {DescribeModule} */
 		const result = {};

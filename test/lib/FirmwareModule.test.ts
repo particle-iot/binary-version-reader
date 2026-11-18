@@ -4,8 +4,8 @@ const FirmwareModule = require('../../lib/FirmwareModule');
 const ModuleInfo = require('../../lib/ModuleInfo');
 const testModules = require('./../describes/modules.json.js');
 
-describe('FirmwareModule', function(){
-	it('should parse describe message', function(){
+describe('FirmwareModule', function () {
+	it('should parse describe message', function () {
 		const message = testModules.message;
 		const module = new FirmwareModule(message);
 		expect(module.uuid).to.eql(message.u);
@@ -31,13 +31,13 @@ describe('FirmwareModule', function(){
 		expect(module.isImageProductValid()).to.eql(false);
 	});
 
-	it('exposes module function characters indexed by function type', function(){
+	it('exposes module function characters indexed by function type', function () {
 		const module = new FirmwareModule();
 		expect(module.moduleFunctions).to.equal(ModuleInfo.FunctionToChar);
 		expect(module.moduleFunctions[ModuleInfo.FunctionType.SYSTEM_PART]).to.equal('s');
 	});
 
-	it('should set validation flags', function(){
+	it('should set validation flags', function () {
 		let module = new FirmwareModule({
 			vc: 62,
 			vv: 60
@@ -59,7 +59,7 @@ describe('FirmwareModule', function(){
 		expect(module.isImageProductValid()).to.eql(false);
 	});
 
-	it('checks each ModuleInfo.ValidationFlags bit', function(){
+	it('checks each ModuleInfo.ValidationFlags bit', function () {
 		const { INTEGRITY, DEPENDENCIES, RANGE, PLATFORM, PRODUCT } = ModuleInfo.ValidationFlags;
 		const all = INTEGRITY | DEPENDENCIES | RANGE | PLATFORM | PRODUCT;
 		let module = new FirmwareModule({
@@ -87,12 +87,12 @@ describe('FirmwareModule', function(){
 		expect(module.isImagePlatformValid()).to.eql(true);
 	});
 
-	it('should not parse null/undefined describe', function(){
+	it('should not parse null/undefined describe', function () {
 		let module = new FirmwareModule(null);
 		module = new FirmwareModule(undefined);
 	});
 
-	it('should return describe like object', function(){
+	it('should return describe like object', function () {
 		const message = testModules.message;
 		const module = new FirmwareModule(message);
 		const describe = module.toDescribe();
@@ -107,7 +107,7 @@ describe('FirmwareModule', function(){
 		expect(describe.d).to.eql(describe.d);
 	});
 
-	it('should return dependency resolution status', function(){
+	it('should return dependency resolution status', function () {
 		const message = testModules.message;
 		const module = new FirmwareModule(message);
 		const data = require('./../describes/fixed_dependencies_describe.json.js');
@@ -125,7 +125,7 @@ describe('FirmwareModule', function(){
 		expect(unmet).to.have.lengthOf(0);
 	});
 
-	it('should return dependency resolution status for multiple dependencies', function(){
+	it('should return dependency resolution status for multiple dependencies', function () {
 		const message = testModules.messageMultipleDependencies;
 		const module = new FirmwareModule(message);
 
@@ -149,7 +149,7 @@ describe('FirmwareModule', function(){
 		expect(unmet).to.have.lengthOf(0);
 	});
 
-	it('should return dependency resolution status with module function "none"', function(){
+	it('should return dependency resolution status with module function "none"', function () {
 		const message = testModules.messageMultipleDependencies;
 		const module = new FirmwareModule(message);
 
@@ -173,7 +173,7 @@ describe('FirmwareModule', function(){
 		expect(unmet).to.have.lengthOf(0);
 	});
 
-	it('should return dependency resolution status when dependency is not present in device describe', function(){
+	it('should return dependency resolution status when dependency is not present in device describe', function () {
 		const message = testModules.messageWithDependencyNotInDeviceDescribe;
 		const module = new FirmwareModule(message);
 

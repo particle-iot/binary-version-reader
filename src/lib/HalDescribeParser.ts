@@ -36,11 +36,13 @@ class HalDescribeParser {
 		if (!modules) {
 			return null;
 		}
-		const systemModules = modules.filter(function filter(item) {
-			return item.isSystemModule();
-		}).sort(function sort(a, b) {
-			return a.version > b.version;
-		});
+		const systemModules = modules
+			.filter(function filter(item) {
+				return item.isSystemModule();
+			})
+			.sort(function sort(a, b) {
+				return a.version > b.version;
+			});
 
 		if (systemModules.length === 0) {
 			// We are expecting at least one system module

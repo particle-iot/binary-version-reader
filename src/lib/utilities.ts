@@ -29,7 +29,7 @@ module.exports = {
 	 * @param {(item: T) => string} [keyFn] When not given, `arr` is returned as-is
 	 * @returns {T[]}
 	 */
-	dedupArray: function(arr, keyFn) {
+	dedupArray: function (arr, keyFn) {
 		if (!keyFn) {
 			return arr;
 		}
@@ -38,7 +38,7 @@ module.exports = {
 		/** @type {Record<string, boolean>} */
 		const hash = {};
 
-		for(let i=0;i<arr.length;i++) {
+		for (let i = 0; i < arr.length; i++) {
 			const dep = arr[i];
 			const key = keyFn(dep);
 
@@ -58,7 +58,7 @@ module.exports = {
 	 * @param {Buffer} buf
 	 * @returns {Buffer}
 	 */
-	crc32: function(buf) {
+	crc32: function (buf) {
 		return globalConfig.crc32(buf);
 	},
 

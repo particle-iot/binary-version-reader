@@ -1,4 +1,11 @@
-const { Flags: ModuleFlags, MODULE_PREFIX_SIZE, MIN_MODULE_SUFFIX_SIZE, MAX_MODULE_SUFFIX_SIZE, ModuleInfoExtension, ModuleFunction } = require('./ModuleInfo.js');
+const {
+	Flags: ModuleFlags,
+	MODULE_PREFIX_SIZE,
+	MIN_MODULE_SUFFIX_SIZE,
+	MAX_MODULE_SUFFIX_SIZE,
+	ModuleInfoExtension,
+	ModuleFunction
+} = require('./ModuleInfo.js');
 const HalModuleParser = require('./HalModuleParser');
 const { crc32 } = require('./utilities');
 
@@ -236,7 +243,6 @@ class PlatformLimitError extends Error {
 	}
 }
 
-
 // Size of the `compressed_module_header` structure in Device OS
 const COMPRESSED_MODULE_HEADER_SIZE = 8;
 
@@ -292,7 +298,8 @@ function updateModulePrefix(data, prefix) {
 	// Start address
 	if (prefix.moduleStartAddy !== undefined) {
 		let addr = prefix.moduleStartAddy;
-		if (typeof addr === 'string') { // HalModuleParser returns addresses as strings ¯\(ツ)/¯
+		if (typeof addr === 'string') {
+			// HalModuleParser returns addresses as strings ¯\(ツ)/¯
 			addr = Number.parseInt(addr, 16);
 		}
 		data.writeUInt32LE(addr, offs);
@@ -367,14 +374,16 @@ function updateModulePrefix(data, prefix) {
 		data.writeUInt16LE(prefix.dep2ModuleVersion, offs);
 	}
 	offs += 2;
-	if (prefix.moduleFlags !== undefined && (prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS)) {
+	if (prefix.moduleFlags !== undefined && prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) {
 		if (prefix.extensions) {
 			// Validate size
 			const expectedSize = calculateModulePrefixSize(prefix);
 			if (expectedSize !== prefix.prefixSize) {
 				// A sanity check to see whether the caller has resized the Buffer and already expects a certain
 				// prefix size.
-				throw new RangeError(`Extensions will not fit current prefix without resizing ${expectedSize} != ${prefix.prefixSize}`);
+				throw new RangeError(
+					`Extensions will not fit current prefix without resizing ${expectedSize} != ${prefix.prefixSize}`
+				);
 			}
 			for (const ext of prefix.extensions) {
 				if (ext.data) {
@@ -423,8 +432,12 @@ function calculateModuleSuffixSize(suffix) {
  */
 function calculateModulePrefixSize(prefix) {
 	let size = ModuleInfo.MODULE_PREFIX_SIZE;
-	if (prefix.moduleFlags !== undefined && (prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) &&
-			prefix.extensions && prefix.extensions.length > 0) {
+	if (
+		prefix.moduleFlags !== undefined &&
+		prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS &&
+		prefix.extensions &&
+		prefix.extensions.length > 0
+	) {
 		for (const ext of prefix.extensions) {
 			size += encodeModuleExtension(ext).length;
 		}
@@ -444,7 +457,6 @@ function sanitizeAddress(address) {
 	}
 	return address;
 }
-
 
 /**
  * Encode module extension.
@@ -726,13 +738,13 @@ async function compressModule(data, options) {
 	}
 	if (flags & ModuleFlags.COMBINED) {
 		// Combined modules need to be compressed individually
-		throw new RangeError('Can\'t compress a combined module');
+		throw new RangeError("Can't compress a combined module");
 	}
 	const suffixSize = suffix.suffixSize;
 	if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
 		throw new RangeError('Invalid suffix size');
 	}
-	let dataSize = endAddr - startAddr + 4 /* CRC-32 */;
+	let dataSize = endAddr - startAddr + 4; /* CRC-32 */
 	const prefixOffs = prefix.prefixOffset || 0;
 	if (data.length < prefixOffs + MODULE_PREFIX_SIZE + suffixSize + 4 || data.length !== dataSize) {
 		throw new RangeError('Invalid size of the module data');
@@ -744,13 +756,13 @@ async function compressModule(data, options) {
 	}
 	if (flags & ModuleFlags.DROP_MODULE_INFO) {
 		if (prefixOffs !== 0) {
-			throw new RangeError('DROP_MODULE_INFO can\'t be set for a module with a vector table');
+			throw new RangeError("DROP_MODULE_INFO can't be set for a module with a vector table");
 		}
 		// Skip the prefix data
 		dataOffs = prefixSize;
 		dataSize -= prefixSize;
 		// No need to keep suffix around within the compressed section either
-		dataSize -= suffixSize + 4 /* CRC-32 */;
+		dataSize -= suffixSize + 4; /* CRC-32 */
 	}
 	// Compress the module data
 	let compData = await deflateRawAsync(data.subarray(dataOffs, dataOffs + dataSize), options && options.zlib);
@@ -817,15 +829,19 @@ async function addModuleExtensions({ module, exts = [], replaceWithSameType = fa
 	if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
 		throw new RangeError('Invalid suffix size');
 	}
-	const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4 /* CRC-32 */;
+	const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4; /* CRC-32 */
 	const prefixOffs = prefix.prefixOffset || 0;
 	if (module.length < prefixOffs + MODULE_PREFIX_SIZE + suffixSize + 4 || module.length !== dataSize) {
 		throw new RangeError('Invalid size of the module data');
 	}
 
-	const moduleInfo = firmwareModuleInfoForPlatformAndFunction(prefix.platformID, prefix.moduleFunction, prefix.moduleIndex);
+	const moduleInfo = firmwareModuleInfoForPlatformAndFunction(
+		prefix.platformID,
+		prefix.moduleFunction,
+		prefix.moduleIndex
+	);
 	let extensionsInPrefix = false;
-	if ((prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) || (moduleInfo && moduleInfo.growsLeft)) {
+	if (prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS || (moduleInfo && moduleInfo.growsLeft)) {
 		extensionsInPrefix = true;
 	}
 
@@ -863,8 +879,11 @@ async function addModuleExtensions({ module, exts = [], replaceWithSameType = fa
 	// Always add END extension: it is mandatory to be present in module prefix extensions
 	// and due to the fact that product data for some of the platforms may not use an extension and just be
 	// raw data, to indicate end we will also use END extension here.
-	if (extensions.length > 0 && extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.END &&
-			extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.PRODUCT_DATA) {
+	if (
+		extensions.length > 0 &&
+		extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.END &&
+		extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.PRODUCT_DATA
+	) {
 		extensions.push({
 			type: ModuleInfo.ModuleInfoExtension.END
 		});
@@ -883,7 +902,7 @@ async function addModuleExtensions({ module, exts = [], replaceWithSameType = fa
 		const newStartAddr = prefix.moduleEndAddy - (newSize - 4);
 		let alignment = 0;
 		if (newStartAddr % DEFAULT_START_ALIGNMENT !== 0) {
-			alignment = (newStartAddr % DEFAULT_START_ALIGNMENT);
+			alignment = newStartAddr % DEFAULT_START_ALIGNMENT;
 			newSize += alignment;
 		}
 
@@ -958,15 +977,19 @@ async function removeModuleExtensions({ module, exts = [] } = {}) {
 	if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
 		throw new RangeError('Invalid suffix size');
 	}
-	const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4 /* CRC-32 */;
+	const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4; /* CRC-32 */
 	const prefixOffs = prefix.prefixOffset || 0;
 	if (module.length < prefixOffs + MODULE_PREFIX_SIZE + suffixSize + 4 || module.length !== dataSize) {
 		throw new RangeError('Invalid size of the module data');
 	}
 
-	const moduleInfo = firmwareModuleInfoForPlatformAndFunction(prefix.platformID, prefix.moduleFunction, prefix.moduleIndex);
+	const moduleInfo = firmwareModuleInfoForPlatformAndFunction(
+		prefix.platformID,
+		prefix.moduleFunction,
+		prefix.moduleIndex
+	);
 	let extensionsInPrefix = false;
-	if ((prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) || (moduleInfo && moduleInfo.growsLeft)) {
+	if (prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS || (moduleInfo && moduleInfo.growsLeft)) {
 		extensionsInPrefix = true;
 	}
 
@@ -991,7 +1014,7 @@ async function removeModuleExtensions({ module, exts = [] } = {}) {
 
 	let buffer = null;
 
-	if (extensionsInPrefix) {;
+	if (extensionsInPrefix) {
 		prefix.extensions = extensions;
 	} else {
 		suffix.extensions = extensions;
@@ -1000,8 +1023,11 @@ async function removeModuleExtensions({ module, exts = [] } = {}) {
 	// Always add END extension: it is mandatory to be present in module prefix extensions
 	// and due to the fact that product data for some of the platforms may not use an extension and just be
 	// raw data, to indicate end we will also use END extension here.
-	if (extensions.length > 0 && extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.END &&
-			extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.PRODUCT_DATA) {
+	if (
+		extensions.length > 0 &&
+		extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.END &&
+		extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.PRODUCT_DATA
+	) {
 		extensions.push({
 			type: ModuleInfo.ModuleInfoExtension.END
 		});
@@ -1022,7 +1048,7 @@ async function removeModuleExtensions({ module, exts = [] } = {}) {
 		const newStartAddr = prefix.moduleEndAddy - (newSize - 4);
 		let alignment = 0;
 		if (newStartAddr % DEFAULT_START_ALIGNMENT !== 0) {
-			alignment = (newStartAddr % DEFAULT_START_ALIGNMENT);
+			alignment = newStartAddr % DEFAULT_START_ALIGNMENT;
 			newSize += alignment;
 		}
 
@@ -1077,60 +1103,63 @@ async function removeModuleExtensions({ module, exts = [] } = {}) {
  * @returns {Promise<ModuleExtension[]>}
  */
 async function listModuleExtensions({ module, exts = [] } = {}) {
-  if (exts.length === 0) {
-    throw new RangeError('Empty extension list');
-  }
+	if (exts.length === 0) {
+		throw new RangeError('Empty extension list');
+	}
 
-  const parser = new HalModuleParser();
-  const { prefixInfo: prefix } = await parser.parsePrefix({ fileBuffer: module });
-  const { suffixInfo: suffix } = await parser.parseSuffix({ fileBuffer: module });
-  prefix.moduleStartAddy = sanitizeAddress(prefix.moduleStartAddy);
-  prefix.moduleEndAddy = sanitizeAddress(prefix.moduleEndAddy);
-  const flags = prefix.moduleFlags;
-  if (flags & ModuleFlags.COMPRESSED) {
-    throw new RangeError(`Can't add extensions to a compressed module`);
-  }
-  if (flags & ModuleFlags.COMBINED) {
-    throw new RangeError(`Can\'t add extensions to a combined module`);
-  }
-  const suffixSize = suffix.suffixSize;
-  if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
-    throw new RangeError('Invalid suffix size');
-  }
-  const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4 /* CRC-32 */;
-  const prefixOffs = prefix.prefixOffset || 0;
-  if (module.length < prefixOffs + MODULE_PREFIX_SIZE + suffixSize + 4 || module.length !== dataSize) {
-    throw new RangeError('Invalid size of the module data');
-  }
+	const parser = new HalModuleParser();
+	const { prefixInfo: prefix } = await parser.parsePrefix({ fileBuffer: module });
+	const { suffixInfo: suffix } = await parser.parseSuffix({ fileBuffer: module });
+	prefix.moduleStartAddy = sanitizeAddress(prefix.moduleStartAddy);
+	prefix.moduleEndAddy = sanitizeAddress(prefix.moduleEndAddy);
+	const flags = prefix.moduleFlags;
+	if (flags & ModuleFlags.COMPRESSED) {
+		throw new RangeError(`Can't add extensions to a compressed module`);
+	}
+	if (flags & ModuleFlags.COMBINED) {
+		throw new RangeError(`Can\'t add extensions to a combined module`);
+	}
+	const suffixSize = suffix.suffixSize;
+	if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
+		throw new RangeError('Invalid suffix size');
+	}
+	const dataSize = prefix.moduleEndAddy - prefix.moduleStartAddy + 4; /* CRC-32 */
+	const prefixOffs = prefix.prefixOffset || 0;
+	if (module.length < prefixOffs + MODULE_PREFIX_SIZE + suffixSize + 4 || module.length !== dataSize) {
+		throw new RangeError('Invalid size of the module data');
+	}
 
-  const moduleInfo = firmwareModuleInfoForPlatformAndFunction(prefix.platformID, prefix.moduleFunction, prefix.moduleIndex);
-  let extensionsInPrefix = false;
-  if ((prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) || (moduleInfo && moduleInfo.growsLeft)) {
-    extensionsInPrefix = true;
-  }
+	const moduleInfo = firmwareModuleInfoForPlatformAndFunction(
+		prefix.platformID,
+		prefix.moduleFunction,
+		prefix.moduleIndex
+	);
+	let extensionsInPrefix = false;
+	if (prefix.moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS || (moduleInfo && moduleInfo.growsLeft)) {
+		extensionsInPrefix = true;
+	}
 
-  let extensions = [];
-  if (extensionsInPrefix) {
-    extensions = prefix.extensions;
-  } else {
-    extensions = suffix.extensions;
-  }
-  if (!extensions) {
-    extensions = [];
-  }
+	let extensions = [];
+	if (extensionsInPrefix) {
+		extensions = prefix.extensions;
+	} else {
+		extensions = suffix.extensions;
+	}
+	if (!extensions) {
+		extensions = [];
+	}
 
-  extensions = extensions.filter((val) => {
-    for (const ext of exts) {
-      if (val.type === ext) {
-        return true;
-      }
-    }
-    return false;
-  });
+	extensions = extensions.filter((val) => {
+		for (const ext of exts) {
+			if (val.type === ext) {
+				return true;
+			}
+		}
+		return false;
+	});
 
-  return extensions;
+	return extensions;
 }
-
 
 /**
  * Update module info to include a set of asset dependencies
@@ -1144,64 +1173,66 @@ async function updateModuleAssetDependencies(data, assets) {
 		throw new RangeError('Empty asset dependency list');
 	}
 
-	assets = await Promise.all(assets.map(async (asset) => {
-		let name;
-		let hash;
-		if (asset.name) {
-			name = asset.name;
-			hash = asset.hash;
-		}
-		if (!hash && asset.data) {
-			let moduleInfo;
-			const parser = new HalModuleParser();
-			try {
-				const fileInfo = await parser.parseBuffer({ fileBuffer: asset.data });
-
-				if (fileInfo.crc && fileInfo.crc.ok) {
-					// Looking like a valid module
-					moduleInfo = {
-						prefix: fileInfo.prefixInfo,
-						suffix: fileInfo.suffixInfo
-					};
-				}
-			} catch (error) {
-				// Ignore
+	assets = await Promise.all(
+		assets.map(async (asset) => {
+			let name;
+			let hash;
+			if (asset.name) {
+				name = asset.name;
+				hash = asset.hash;
 			}
-			let parsed = false;
-			if (moduleInfo) {
-				const extensions = [].concat(moduleInfo.prefix.extensions || []).concat(moduleInfo.suffix.extensions || []);
-				if (moduleInfo.prefix.moduleFunction === ModuleInfo.FunctionType.ASSET && extensions.length > 0) {
-					for (const ext of extensions) {
-						if (ext.type === ModuleInfo.ModuleInfoExtension.HASH) {
-							hash = ext.hash;
-						} else if (ext.type === ModuleInfo.ModuleInfoExtension.NAME) {
-							name = ext.name;
-						}
-						if (name && hash) {
-							parsed = true;
-							break;
+			if (!hash && asset.data) {
+				let moduleInfo;
+				const parser = new HalModuleParser();
+				try {
+					const fileInfo = await parser.parseBuffer({ fileBuffer: asset.data });
+
+					if (fileInfo.crc && fileInfo.crc.ok) {
+						// Looking like a valid module
+						moduleInfo = {
+							prefix: fileInfo.prefixInfo,
+							suffix: fileInfo.suffixInfo
+						};
+					}
+				} catch (error) {
+					// Ignore
+				}
+				let parsed = false;
+				if (moduleInfo) {
+					const extensions = [].concat(moduleInfo.prefix.extensions || []).concat(moduleInfo.suffix.extensions || []);
+					if (moduleInfo.prefix.moduleFunction === ModuleInfo.FunctionType.ASSET && extensions.length > 0) {
+						for (const ext of extensions) {
+							if (ext.type === ModuleInfo.ModuleInfoExtension.HASH) {
+								hash = ext.hash;
+							} else if (ext.type === ModuleInfo.ModuleInfoExtension.NAME) {
+								name = ext.name;
+							}
+							if (name && hash) {
+								parsed = true;
+								break;
+							}
 						}
 					}
 				}
+				if (!parsed) {
+					// Raw asset data
+					hash = crypto.createHash('sha256');
+					hash.update(asset.data);
+					hash = hash.digest();
+				}
 			}
-			if (!parsed) {
-				// Raw asset data
-				hash = crypto.createHash('sha256');
-				hash.update(asset.data);
-				hash = hash.digest();
+			if (!name || !hash) {
+				throw new RangeError('Invalid asset information');
 			}
-		}
-		if (!name || !hash) {
-			throw new RangeError('Invalid asset information');
-		}
-		const ext = {
-			type: ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY,
-			hashType: ModuleInfo.ModuleInfoHashExtensionType.SHA256,
-			hash: hash,
-			name: name
-		};
-		return ext;
-	}));
+			const ext = {
+				type: ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY,
+				hashType: ModuleInfo.ModuleInfoHashExtensionType.SHA256,
+				hash: hash,
+				name: name
+			};
+			return ext;
+		})
+	);
 
 	try {
 		return await addModuleExtensions({ module: data, exts: assets, replaceWithSameType: true });
@@ -1280,7 +1311,6 @@ async function createAssetModule(data, name, options) {
 	return buffer;
 }
 
-
 /**
  * Unwrap asset module to raw asset data
  *
@@ -1355,7 +1385,9 @@ async function validateAssetLimits(application, assets) {
 				};
 			}
 			const assetModule = await createAssetModule(asset.data, asset.name);
-			const storageSize = p.assets.assetOverhead + Math.ceil((assetModule.length / (p.assets.blockSize - p.assets.assetPerBlockOverhead))) * p.assets.blockSize;
+			const storageSize =
+				p.assets.assetOverhead +
+				Math.ceil(assetModule.length / (p.assets.blockSize - p.assets.assetPerBlockOverhead)) * p.assets.blockSize;
 			totalSize += storageSize;
 
 			processedAssets.push({
@@ -1377,12 +1409,19 @@ async function validateAssetLimits(application, assets) {
 
 	for (const asset of processedAssets) {
 		if (asset.moduleSize > p.assets.maxSingleAssetSize) {
-			errors.push(new AssetLimitError(details, `Asset ${asset.name} exceeds maximum single asset size limit by ${asset.moduleSize - details.maxSingleAssetSize} bytes`));
+			errors.push(
+				new AssetLimitError(
+					details,
+					`Asset ${asset.name} exceeds maximum single asset size limit by ${asset.moduleSize - details.maxSingleAssetSize} bytes`
+				)
+			);
 		}
 	}
 
 	if (totalSize > storageLimit) {
-		errors.push(new AssetLimitError(details, `Total size of assets exceeds platform limits by ${totalSize - storageLimit} bytes`));
+		errors.push(
+			new AssetLimitError(details, `Total size of assets exceeds platform limits by ${totalSize - storageLimit} bytes`)
+		);
 	}
 
 	if (errors.length > 0) {
@@ -1573,13 +1612,13 @@ async function decompressModule(data) {
 	}
 	if (flags & ModuleFlags.COMBINED) {
 		// Combined modules need to be split and decompressed individually
-		throw new RangeError('Can\'t decompress a combined module');
+		throw new RangeError("Can't decompress a combined module");
 	}
 	const suffixSize = suffix.suffixSize;
 	if (suffixSize < MIN_MODULE_SUFFIX_SIZE || suffixSize > MAX_MODULE_SUFFIX_SIZE) {
 		throw new RangeError('Invalid suffix size');
 	}
-	let dataSize = endAddr - startAddr + 4 /* CRC-32 */;
+	let dataSize = endAddr - startAddr + 4; /* CRC-32 */
 	const prefixSize = prefix.prefixSize;
 	if (prefixSize < MODULE_PREFIX_SIZE) {
 		throw new RangeError('Invalid prefix size');
@@ -1593,18 +1632,22 @@ async function decompressModule(data) {
 	const compHeaderSize = data.readUInt16LE(offs);
 	if (compHeaderSize < COMPRESSED_MODULE_HEADER_SIZE) {
 		throw new Error('Invalid size of the compressed data header');
-	} else if (compHeaderSize > COMPRESSED_MODULE_HEADER_SIZE &&
-			data.length < minModuleSize + compHeaderSize - COMPRESSED_MODULE_HEADER_SIZE) {
+	} else if (
+		compHeaderSize > COMPRESSED_MODULE_HEADER_SIZE &&
+		data.length < minModuleSize + compHeaderSize - COMPRESSED_MODULE_HEADER_SIZE
+	) {
 		throw new RangeError('Invalid size of the module data');
 	}
 	offs += 2;
 	const compMethod = data.readUInt8(offs);
-	if (compMethod !== 0) { // Raw Deflate
+	if (compMethod !== 0) {
+		// Raw Deflate
 		throw new Error('Unknown compression method');
 	}
 	offs += 1;
 	const windowBits = data.readUInt8(offs);
-	if (windowBits !== 0 && !(windowBits >= 8 && windowBits <= 15)) { // Valid range for raw Deflate
+	if (windowBits !== 0 && !(windowBits >= 8 && windowBits <= 15)) {
+		// Valid range for raw Deflate
 		throw new Error('Invalid size of the decompression window');
 	}
 	offs += 1;
@@ -1734,7 +1777,7 @@ async function splitCombinedModules(data, options) {
 			throw new Error('Invalid module end address');
 		}
 		flags = prefix.moduleFlags;
-		const size = endAddr - startAddr + 4 /* CRC-32 */;
+		const size = endAddr - startAddr + 4; /* CRC-32 */
 		if (data.length - offs < size) {
 			throw new RangeError('Invalid size of the module data');
 		}
@@ -1758,7 +1801,7 @@ async function splitCombinedModules(data, options) {
 			break;
 		}
 	} while (offs < data.length);
-	if ((flags & ModuleFlags.COMBINED) || offs < data.length) {
+	if (flags & ModuleFlags.COMBINED || offs < data.length) {
 		throw new Error('Invalid module data');
 	}
 	return mods;
@@ -1853,11 +1896,13 @@ async function encodeEnvVarsAsset(vars, snapshot = undefined, maxSize = MAX_ENV_
 	}
 
 	const EnvVars = protobufSchema.system.EnvVars;
-	const assetData = EnvVars.encode(EnvVars.create({
-		vars: Object.entries(vars).map(([name, value]) => EnvVars.Var.create({ name, value })),
-		hash,
-		updatedAt
-	})).finish();
+	const assetData = EnvVars.encode(
+		EnvVars.create({
+			vars: Object.entries(vars).map(([name, value]) => EnvVars.Var.create({ name, value })),
+			hash,
+			updatedAt
+		})
+	).finish();
 	return assetData;
 }
 

@@ -24,7 +24,6 @@ const ModuleInfo = require('./ModuleInfo');
 
 const MIN_MODULE_SUFFIX_SIZE = ModuleInfo.MIN_MODULE_SUFFIX_SIZE;
 
-
 //Buffer is global
 
 /**
@@ -148,7 +147,6 @@ const MIN_MODULE_SUFFIX_SIZE = ModuleInfo.MIN_MODULE_SUFFIX_SIZE;
  * core/photon/electron / etc
  */
 class HalModuleParser {
-
 	/**
 	 * given a file / callback, goes and reads out all the info!
 	 *
@@ -171,7 +169,6 @@ class HalModuleParser {
 				callback(allDone, null);
 			}
 			return allDone;
-
 		} catch (error) {
 			if (callback) {
 				callback(null, error);
@@ -179,7 +176,6 @@ class HalModuleParser {
 			throw error;
 		}
 	}
-
 
 	/**
 	 * broken out if you're working with a buffer instead, expects a
@@ -201,10 +197,11 @@ class HalModuleParser {
 			fileInfo.crc = await this._validateCRC(fileInfo.fileBuffer);
 			fileInfo.prefixInfo = await this._readPrefix(fileInfo.fileBuffer);
 			fileInfo.suffixInfo = await this._readSuffix(fileInfo.fileBuffer);
-			const assets = [].concat(fileInfo.prefixInfo.extensions || [])
+			const assets = []
+				.concat(fileInfo.prefixInfo.extensions || [])
 				.concat(fileInfo.suffixInfo.extensions || [])
-				.filter(ext => ext.type === ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY)
-				.map(ext => ({
+				.filter((ext) => ext.type === ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY)
+				.map((ext) => ({
 					hashType: ext.hashType,
 					hash: ext.hash,
 					name: ext.name
@@ -212,10 +209,11 @@ class HalModuleParser {
 			if (assets.length > 0) {
 				fileInfo.assets = assets;
 			}
-			const security = [].concat(fileInfo.prefixInfo.extensions || [])
+			const security = []
+				.concat(fileInfo.prefixInfo.extensions || [])
 				.concat(fileInfo.suffixInfo.extensions || [])
-				.filter(ext => ext.type === ModuleInfo.ModuleInfoExtension.SECURITY_MODE)
-				.map(ext => ({
+				.filter((ext) => ext.type === ModuleInfo.ModuleInfoExtension.SECURITY_MODE)
+				.map((ext) => ({
 					mode: ext.securityMode,
 					certificate: ext.certificate
 				}));
@@ -278,11 +276,11 @@ class HalModuleParser {
 	 */
 	async _loadFile(filename) {
 		if (!fs.existsSync(filename)) {
-			throw new Error(filename + ' doesn\'t exist');
+			throw new Error(filename + " doesn't exist");
 		}
 
 		const fileBuffer = fs.readFileSync(filename);
-		if (!fileBuffer || (fileBuffer.length === 0)) {
+		if (!fileBuffer || fileBuffer.length === 0) {
 			throw new Error(filename + ' was empty!');
 		}
 
@@ -296,7 +294,7 @@ class HalModuleParser {
 	 * @returns {Promise<CrcInfo | false>} `false` when the buffer is empty
 	 */
 	async _validateCRC(fileBuffer) {
-		if (!fileBuffer || (fileBuffer.length === 0)) {
+		if (!fileBuffer || fileBuffer.length === 0) {
 			//console.log('validateCRC: buffer was empty!');
 			return false;
 		}
@@ -308,7 +306,7 @@ class HalModuleParser {
 		const matching = Buffer.compare(storedCrcValue, crcResult);
 
 		const result = {
-			ok: (matching === 0),
+			ok: matching === 0,
 			storedCrc: storedCrcValue.toString('hex'),
 			actualCrc: crcResult.toString('hex')
 		};
@@ -350,7 +348,7 @@ class HalModuleParser {
 		if (endAddr <= startAddr) {
 			return result;
 		}
-		const expectedSize = endAddr - startAddr + 4 /* CRC-32 */;
+		const expectedSize = endAddr - startAddr + 4; /* CRC-32 */
 		if (fileBuffer.length < expectedSize) {
 			return result;
 		}
@@ -398,11 +396,11 @@ class HalModuleParser {
 			result.score++;
 		}
 		// Module flags are known
-		const allFlags = Object.values(ModuleInfo.Flags).reduce((a, b) => (a | b), 0);
-		if ((prefixInfo.moduleFlags & (~allFlags)) === 0) {
+		const allFlags = Object.values(ModuleInfo.Flags).reduce((a, b) => a | b, 0);
+		if ((prefixInfo.moduleFlags & ~allFlags) === 0) {
 			result.score++;
 		}
-		result.passed = (result.score >= maxScore);
+		result.passed = result.score >= maxScore;
 		return result;
 	}
 
@@ -429,8 +427,8 @@ class HalModuleParser {
 			0,
 			0x200, // Gen 3
 			0x184, // Gen 2
-			0xC0, // Bluez
-			0x10C, // Core
+			0xc0, // Bluez
+			0x10c // Core
 		];
 
 		let likelyOffset = 0;
@@ -448,8 +446,10 @@ class HalModuleParser {
 
 		// Fallback to trying all (reasonable) offsets with 4 byte alignment
 		const maxModulePrefixOffset = 8 * 1024; // Anything above 8KB is unreasonable
-		const endAddress = Math.min(maxModulePrefixOffset,
-				fileBuffer.length - ModuleInfo.MIN_MODULE_SUFFIX_SIZE - ModuleInfo.MODULE_PREFIX_SIZE - 4 /* CRC-32 */);
+		const endAddress = Math.min(
+			maxModulePrefixOffset,
+			fileBuffer.length - ModuleInfo.MIN_MODULE_SUFFIX_SIZE - ModuleInfo.MODULE_PREFIX_SIZE - 4 /* CRC-32 */
+		);
 		for (let offset = 4; offset <= endAddress; offset += 4) {
 			// Just an optimization
 			if (preferredOffsets.includes(offset)) {
@@ -572,7 +572,7 @@ class HalModuleParser {
 		if (moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) {
 			const extensions = [];
 
-			while (offs < (r.length - ModuleInfo.MIN_MODULE_SUFFIX_SIZE - 4)) {
+			while (offs < r.length - ModuleInfo.MIN_MODULE_SUFFIX_SIZE - 4) {
 				const ext = this._readExtension(r, offs);
 				if (!ext) {
 					break;
@@ -616,7 +616,7 @@ class HalModuleParser {
 		if (type === ModuleInfo.ModuleInfoExtension.INVALID) {
 			return null;
 		}
-		if ((idx + length - 4) > fileBuffer.length) {
+		if (idx + length - 4 > fileBuffer.length) {
 			return null;
 		}
 		const offset = idx - 4;
@@ -785,7 +785,7 @@ class HalModuleParser {
 			fwUniqueId: fwUniqueId,
 			reserved: reserved,
 			suffixSize: suffixSize,
-			crcBlock: crcBlock,
+			crcBlock: crcBlock
 		};
 		if (extensions.length) {
 			suffix.extensions = extensions;

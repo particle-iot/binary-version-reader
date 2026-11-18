@@ -22,18 +22,15 @@ import { describe, it, expect } from 'vitest';
 
 const fs = require('fs');
 const path = require('path');
-const HalDependencyResolver = require ('../../lib/HalDependencyResolver.js');
+const HalDependencyResolver = require('../../lib/HalDependencyResolver.js');
 const FirmwareModule = require('../../lib/FirmwareModule');
 
 const settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
-
-describe('HalDependencyResolver', function() {
-
-
-	it('logs and skips a module that fails to parse', async function() {
+describe('HalDependencyResolver', function () {
+	it('logs and skips a module that fails to parse', async function () {
 		const resolver = new HalDependencyResolver();
 		const errors = [];
 		const originalConsoleError = console.error;
@@ -48,7 +45,7 @@ describe('HalDependencyResolver', function() {
 		expect(resolver._moduleStorage).to.eql([]);
 	});
 
-	it('repairs errors in module names and versions', function() {
+	it('repairs errors in module names and versions', function () {
 		const photonReportedModules = require('./../describes/describe.json.js').m;
 		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
 
@@ -58,7 +55,7 @@ describe('HalDependencyResolver', function() {
 		expect(result).eql(fixedTestData);
 	});
 
-	it('converts binary metadata into describe format', function() {
+	it('converts binary metadata into describe format', function () {
 		const userPrefixInfo = {
 			depModuleFunction: 4,
 			depModuleIndex: 2,
@@ -77,8 +74,7 @@ describe('HalDependencyResolver', function() {
 		expect(result).eql(expectedDescribe);
 	});
 
-
-	it('walk a dependency chain nicely', function() {
+	it('walk a dependency chain nicely', function () {
 		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
 		const safeBinaryReqs = {
 			f: 's',
@@ -91,7 +87,7 @@ describe('HalDependencyResolver', function() {
 		expect(arr).eql([]);
 	});
 
-	it('flag a module for update when out of version', function() {
+	it('flag a module for update when out of version', function () {
 		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
 		const systemPart2 = fixedTestData[2];
 
@@ -108,7 +104,6 @@ describe('HalDependencyResolver', function() {
 		expect(arr.length).eql(1);
 		expect(arr[0]).eql(shouldBeMissing);
 	});
-
 
 	/**
 	 * loads the system parts,
@@ -131,8 +126,7 @@ describe('HalDependencyResolver', function() {
 		  \/_____/   \/_/   \/_/   \/_____/   \/_____/     \/_/
 
 	 */
-	it('passes a full test', async function() {
-
+	it('passes a full test', async function () {
 		const resolver = new HalDependencyResolver();
 
 		const part1 = path.join(settings.binaries, '../binaries/040_system-part1.bin');
@@ -141,7 +135,6 @@ describe('HalDependencyResolver', function() {
 		// load those modules in!
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
-
 
 		const describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
 		const oldDescribe = require(describeFilename).m;
@@ -164,8 +157,7 @@ describe('HalDependencyResolver', function() {
 		expect(result[1].filename).to.match(/system-part2\.bin$/);
 	});
 
-	it('recommend modules when going from 042 to 043', async function() {
-
+	it('recommend modules when going from 042 to 043', async function () {
 		const resolver = new HalDependencyResolver();
 
 		const part1 = path.join(settings.binaries, '../binaries/043_system-part1.bin');
@@ -174,7 +166,6 @@ describe('HalDependencyResolver', function() {
 		// load those modules in!
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
-
 
 		const describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
 		const oldDescribe = require(describeFilename).m;
@@ -197,7 +188,7 @@ describe('HalDependencyResolver', function() {
 		expect(result[1].filename).to.match(/system-part2\.bin$/);
 	});
 
-	it('rejects when detects missing dependencies', async function(){
+	it('rejects when detects missing dependencies', async function () {
 		const userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
 		const resolver = new HalDependencyResolver();
 
@@ -210,9 +201,9 @@ describe('HalDependencyResolver', function() {
 
 		try {
 			await resolver.userModuleHasMissingDependencies(userModuleSafeMode);
-			new Error("Should have rejected: " + result);
+			new Error('Should have rejected: ' + result);
 		} catch (err) {
-			console.log('!!!!!!!got error as expected', err)
+			console.log('!!!!!!!got error as expected', err);
 			expect(err).be.ok;
 			expect(err.length).eql(1);
 
@@ -223,10 +214,9 @@ describe('HalDependencyResolver', function() {
 		}
 	});
 
-	it('resolves when dependencies are met', async function(){
+	it('resolves when dependencies are met', async function () {
 		const data = require('./../describes/fixed_dependencies_describe.json.js');
 		const resolver = new HalDependencyResolver();
-
 
 		const deps = resolver.findAnyMissingDependencies(data);
 		expect(deps).be.ok;
@@ -235,7 +225,7 @@ describe('HalDependencyResolver', function() {
 		return resolver.userModuleHasMissingDependencies(data);
 	});
 
-	it('solves firmware module', function(){
+	it('solves firmware module', function () {
 		const data = require('./../describes/fixed_dependencies_describe.json.js');
 		const resolver = new HalDependencyResolver();
 		const module = new FirmwareModule({
@@ -258,7 +248,7 @@ describe('HalDependencyResolver', function() {
 		expect(result[0].v).to.eql(requiredVersion);
 	});
 
-	it('finds missing dependencies for example 1', async function() {
+	it('finds missing dependencies for example 1', async function () {
 		const data = require('./../describes/safe_mode_1.json.js');
 		const resolver = new HalDependencyResolver();
 		const results = resolver.findAnyMissingDependencies(data);
@@ -269,22 +259,18 @@ describe('HalDependencyResolver', function() {
 		const shouldBeMissing = data.m[2].d[0];
 		const dep = results[0];
 
-
 		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
 		expect(dep.f).eql(shouldBeMissing.f);
 		expect(dep.n).eql(shouldBeMissing.n);
 		expect(dep.v).eql(shouldBeMissing.v);
 	});
 
-
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
-	it('handles missing user module appropriately', async function() {
-
+	it('handles missing user module appropriately', async function () {
 		const describe = require('./../describes/describe_no_usermodule.js');
 		const resolver = new HalDependencyResolver();
-
 
 		// should have nothing missing
 		const deps = resolver.findAnyMissingDependencies(describe);
@@ -298,11 +284,9 @@ describe('HalDependencyResolver', function() {
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
-	it('handles missing user module with missing stuff appropriately', async function() {
-
+	it('handles missing user module with missing stuff appropriately', async function () {
 		const describe = require('./../describes/describe_no_usermodule2.js');
 		const resolver = new HalDependencyResolver();
-
 
 		// should have nothing missing
 		const deps = resolver.findAnyMissingDependencies(describe);
@@ -317,11 +301,9 @@ describe('HalDependencyResolver', function() {
 		return resolver.userModuleHasMissingDependencies(describe);
 	});
 
-	it('handles weird double-safe-mode case', async function() {
-
+	it('handles weird double-safe-mode case', async function () {
 		const describe = require('./../describes/safe_mode_3.json.js');
 		const resolver = new HalDependencyResolver();
-
 
 		// should have nothing missing
 		const deps = resolver.findAnyMissingDependencies(describe);
@@ -335,14 +317,11 @@ describe('HalDependencyResolver', function() {
 
 		// so when picking an update in the case of multiple dependencies, we should pick the thing that
 		// itself has no dependencies if available.
-
 	});
 
-	it('handles multiple dependencies', async function() {
-
+	it('handles multiple dependencies', async function () {
 		const describe = require('./../describes/multiple_dependencies.json.js');
 		const resolver = new HalDependencyResolver();
-
 
 		const deps = resolver.findAnyMissingDependencies(describe);
 		expect(deps).be.ok;
@@ -355,7 +334,6 @@ describe('HalDependencyResolver', function() {
 		expect(deps[0].v).eql(m.v);
 	});
 
-
 	describe('factory image', () => {
 		function hasMissingDependencies(describe) {
 			const modules = new HalDependencyResolver().findAnyMissingDependencies(describe);
@@ -363,41 +341,223 @@ describe('HalDependencyResolver', function() {
 		}
 
 		it('does not report safe mode for factory modules that are invalid', () => {
-
-			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':0,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+			const describe = {
+				p: 13,
+				m: [
+					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
+					{
+						s: 671744,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						f: 's',
+						n: '1',
+						v: 403,
+						d: [
+							{ f: 'b', n: '0', v: 101, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						u: '09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45',
+						f: 'u',
+						n: '1',
+						v: 5,
+						d: [
+							{ f: 's', n: '1', v: 403, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'f',
+						vc: 30,
+						vv: 0,
+						d: [
+							{ f: '_', n: '6', v: 0, _: '' },
+							{ f: '_', n: '6', v: 0, _: '' }
+						]
+					}
+				]
+			};
 
 			expect(hasMissingDependencies(describe)).to.be.eql(false);
 		});
 
 		it('does not report safe mode for factory modules that are invalid', () => {
-
-			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':0,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+			const describe = {
+				p: 13,
+				m: [
+					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
+					{
+						s: 671744,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						f: 's',
+						n: '1',
+						v: 403,
+						d: [
+							{ f: 'b', n: '0', v: 101, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						u: '09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45',
+						f: 'u',
+						n: '1',
+						v: 5,
+						d: [
+							{ f: 's', n: '1', v: 403, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'f',
+						vc: 30,
+						vv: 0,
+						d: [
+							{ f: '_', n: '6', v: 0, _: '' },
+							{ f: '_', n: '6', v: 0, _: '' }
+						]
+					}
+				]
+			};
 
 			expect(hasMissingDependencies(describe)).to.be.eql(false);
 		});
 
 		it('does not report safe mode for factory modules that are valid', () => {
-
-			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'f','vc':30,'vv':30,'d':[{ 'f':'_','n':'6','v':0,'_':'' },{ 'f':'_','n':'6','v':0,'_':'' }] }] };
+			const describe = {
+				p: 13,
+				m: [
+					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
+					{
+						s: 671744,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						f: 's',
+						n: '1',
+						v: 403,
+						d: [
+							{ f: 'b', n: '0', v: 101, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						u: '09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45',
+						f: 'u',
+						n: '1',
+						v: 5,
+						d: [
+							{ f: 's', n: '1', v: 403, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'f',
+						vc: 30,
+						vv: 30,
+						d: [
+							{ f: '_', n: '6', v: 0, _: '' },
+							{ f: '_', n: '6', v: 0, _: '' }
+						]
+					}
+				]
+			};
 
 			expect(hasMissingDependencies(describe)).to.be.eql(false);
 		});
 
-
 		it('does not report safe mode for no missing dependencies', () => {
-
-			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':403,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] }] };
+			const describe = {
+				p: 13,
+				m: [
+					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
+					{
+						s: 671744,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						f: 's',
+						n: '1',
+						v: 403,
+						d: [
+							{ f: 'b', n: '0', v: 101, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						u: '09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45',
+						f: 'u',
+						n: '1',
+						v: 5,
+						d: [
+							{ f: 's', n: '1', v: 403, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					}
+				]
+			};
 
 			expect(hasMissingDependencies(describe)).to.be.eql(false);
 		});
 
 		it('reports safe mode for missing application dependencies', () => {
-
-			const describe = { 'p':13,'m':[{ 's':49152,'l':'m','vc':30,'vv':30,'f':'b','n':'0','v':300,'d':[] },{ 's':671744,'l':'m','vc':30,'vv':30,'f':'s','n':'1','v':403,'d':[{ 'f':'b','n':'0','v':101,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] },{ 's':131072,'l':'m','vc':30,'vv':30,'u':'09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45','f':'u','n':'1','v':5,'d':[{ 'f':'s','n':'1','v':9999,'_':'' },{ 'f':'n','n':'0','v':0,'_':'' }] }] };
+			const describe = {
+				p: 13,
+				m: [
+					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
+					{
+						s: 671744,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						f: 's',
+						n: '1',
+						v: 403,
+						d: [
+							{ f: 'b', n: '0', v: 101, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					},
+					{
+						s: 131072,
+						l: 'm',
+						vc: 30,
+						vv: 30,
+						u: '09B7930F35B990D0021501E62007AE48BBC68E6422CE4504B2BA6DEA7F5E1C45',
+						f: 'u',
+						n: '1',
+						v: 5,
+						d: [
+							{ f: 's', n: '1', v: 9999, _: '' },
+							{ f: 'n', n: '0', v: 0, _: '' }
+						]
+					}
+				]
+			};
 
 			expect(hasMissingDependencies(describe)).to.be.eql(true);
 		});
-
 	});
-
 });

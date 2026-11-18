@@ -4,9 +4,9 @@ const firmwareTestHelper = require('../../lib/firmwareTestHelper');
 const HalModuleParser = require('../../lib/HalModuleParser');
 const ModuleInfo = require('../../lib/ModuleInfo');
 
-describe('firmwareTestHelper', function() {
-	describe('createFirmwareBinary', function() {
-		it('creates a valid user part', function() {
+describe('firmwareTestHelper', function () {
+	describe('createFirmwareBinary', function () {
+		it('creates a valid user part', function () {
 			const productId = 42;
 			const productVersion = 3;
 			const platformId = 6;
@@ -32,7 +32,7 @@ describe('firmwareTestHelper', function() {
 			});
 		});
 
-		it('can optionally create a module with a vector table', function() {
+		it('can optionally create a module with a vector table', function () {
 			const productId = 42;
 			const productVersion = 3;
 			const platformId = 6;
@@ -45,8 +45,13 @@ describe('firmwareTestHelper', function() {
 				}
 			];
 
-			const binary = firmwareTestHelper.createFirmwareBinary({ productId, productVersion, platformId, deps,
-					addVectorTable: true });
+			const binary = firmwareTestHelper.createFirmwareBinary({
+				productId,
+				productVersion,
+				platformId,
+				deps,
+				addVectorTable: true
+			});
 
 			const parser = new HalModuleParser();
 			return parser.parseBuffer({ fileBuffer: binary }).then((fileInfo) => {

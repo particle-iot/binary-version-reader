@@ -16,89 +16,89 @@
 const { platforms } = require('@particle/device-constants');
 
 const ModuleFunction = /** @type {const} */ ({
-    NONE: 0,
-    RESOURCE: 1,
-    BOOTLOADER: 2,
-    MONO_FIRMWARE: 3,
-    SYSTEM_PART: 4,
-    USER_PART: 5,
-    SETTINGS: 6,
-    NCP_FIRMWARE: 7,
-    RADIO_STACK: 8,
-    ASSET: 9
+	NONE: 0,
+	RESOURCE: 1,
+	BOOTLOADER: 2,
+	MONO_FIRMWARE: 3,
+	SYSTEM_PART: 4,
+	USER_PART: 5,
+	SETTINGS: 6,
+	NCP_FIRMWARE: 7,
+	RADIO_STACK: 8,
+	ASSET: 9
 });
 
 const ModuleFunctionChar = /** @type {const} */ ({
-    NONE: 'n',
-    RESOURCE: 'r',
-    BOOTLOADER: 'b',
-    MONO_FIRMWARE: 'm',
-    SYSTEM_PART: 's',
-    USER_PART: 'u',
-    SETTINGS: '_', // unused
-    NCP_FIRMWARE: 'c',
-    RADIO_STACK: 'a',
-    ASSET: 't'
+	NONE: 'n',
+	RESOURCE: 'r',
+	BOOTLOADER: 'b',
+	MONO_FIRMWARE: 'm',
+	SYSTEM_PART: 's',
+	USER_PART: 'u',
+	SETTINGS: '_', // unused
+	NCP_FIRMWARE: 'c',
+	RADIO_STACK: 'a',
+	ASSET: 't'
 });
 
 const ModuleFunctionToChar = /** @type {const} */ ([
-    ModuleFunctionChar.NONE,
-    ModuleFunctionChar.RESOURCE,
-    ModuleFunctionChar.BOOTLOADER,
-    ModuleFunctionChar.MONO_FIRMWARE,
-    ModuleFunctionChar.SYSTEM_PART,
-    ModuleFunctionChar.USER_PART,
-    ModuleFunctionChar.SETTINGS,
-    ModuleFunctionChar.NCP_FIRMWARE,
-    ModuleFunctionChar.RADIO_STACK,
-    ModuleFunctionChar.ASSET
+	ModuleFunctionChar.NONE,
+	ModuleFunctionChar.RESOURCE,
+	ModuleFunctionChar.BOOTLOADER,
+	ModuleFunctionChar.MONO_FIRMWARE,
+	ModuleFunctionChar.SYSTEM_PART,
+	ModuleFunctionChar.USER_PART,
+	ModuleFunctionChar.SETTINGS,
+	ModuleFunctionChar.NCP_FIRMWARE,
+	ModuleFunctionChar.RADIO_STACK,
+	ModuleFunctionChar.ASSET
 ]);
 
 const ModuleInfoFlags = /** @type {const} */ ({
-    NONE: 0x0,
-    DROP_MODULE_INFO: 0x01,
-    COMPRESSED: 0x02,
-    COMBINED: 0x04,
-    ENCRYPTED: 0x08,
-    PREFIX_EXTENSIONS: 0x10
+	NONE: 0x0,
+	DROP_MODULE_INFO: 0x01,
+	COMPRESSED: 0x02,
+	COMBINED: 0x04,
+	ENCRYPTED: 0x08,
+	PREFIX_EXTENSIONS: 0x10
 });
 
 const ModuleValidationFlags = /** @type {const} */ ({
-    PASSED: 0,
-    INTEGRITY: 0x02,
-    DEPENDENCIES: 0x04,
-    RANGE: 0x08,
-    PLATFORM: 0x10,
-    PRODUCT: 0x20,
-    DEPENDENCIES_FULL: 0x40
+	PASSED: 0,
+	INTEGRITY: 0x02,
+	DEPENDENCIES: 0x04,
+	RANGE: 0x08,
+	PLATFORM: 0x10,
+	PRODUCT: 0x20,
+	DEPENDENCIES_FULL: 0x40
 });
 
 const ModuleInfoExtension = /** @type {const} */ ({
-    END: 0x0000,
-    PRODUCT_DATA: 0x0001,
-    DYNAMIC_LOCATION: 0x0002,
-    DEPENDENCY: 0x0003,
-    HASH: 0x0010,
-    NAME: 0x0011,
-    ASSET_DEPENDENCY: 0x0012,
-    SECURITY_MODE: 0x0013,
-    ASSET_TYPE: 0x0014,
-    INVALID: 0xffff
+	END: 0x0000,
+	PRODUCT_DATA: 0x0001,
+	DYNAMIC_LOCATION: 0x0002,
+	DEPENDENCY: 0x0003,
+	HASH: 0x0010,
+	NAME: 0x0011,
+	ASSET_DEPENDENCY: 0x0012,
+	SECURITY_MODE: 0x0013,
+	ASSET_TYPE: 0x0014,
+	INVALID: 0xffff
 });
 
 const ModuleInfoHashExtensionType = /** @type {const} */ ({
-    SHA256: 0
+	SHA256: 0
 });
 
 const ModuleInfoSecurityMode = /** @type {const} */ ({
-    NONE: 0,
-    PROTECTED: 1
+	NONE: 0,
+	PROTECTED: 1
 });
 
 const ModuleInfoAssetType = /** @type {const} */ ({
-    DEFAULT: 0,
-    ENV_VARS_APP: 1,
-    ENV_VARS_SNAPSHOT: 2
+	DEFAULT: 0,
+	ENV_VARS_APP: 1,
+	ENV_VARS_SNAPSHOT: 2
 });
 
 /**
@@ -107,12 +107,11 @@ const ModuleInfoAssetType = /** @type {const} */ ({
  * @type {Record<string, number>}
  */
 const ModuleInfoPlatform = Object.values(platforms)
-    .filter(p => p.generation > 0)
-    .reduce((/** @type {Record<string, number>} */ out, p) => {
-        out[p.name.toUpperCase()] = p.id;
-        return out;
-    }, {});
-
+	.filter((p) => p.generation > 0)
+	.reduce((/** @type {Record<string, number>} */ out, p) => {
+		out[p.name.toUpperCase()] = p.id;
+		return out;
+	}, {});
 
 /**
  * The size of a module's prefix data.
@@ -148,19 +147,19 @@ const MAX_MODULE_SUFFIX_SIZE = 0xffff;
 const HEADER_SIZE = MODULE_PREFIX_SIZE;
 
 module.exports = {
-    FunctionType: ModuleFunction,
-    FunctionChar: ModuleFunctionChar,
-    Flags: ModuleInfoFlags,
-    FunctionToChar: ModuleFunctionToChar,
-    ValidationFlags: ModuleValidationFlags,
-    Platform: ModuleInfoPlatform,
-    MODULE_PREFIX_SIZE,
-    MIN_MODULE_SUFFIX_SIZE,
-    MAX_MODULE_SUFFIX_SIZE,
-    HEADER_SIZE: HEADER_SIZE,
-    ModuleInfoExtension, // Deprecated, use ExtensionType instead
-    ExtensionType: ModuleInfoExtension,
-    ModuleInfoHashExtensionType,
-    ModuleInfoSecurityMode,
-    AssetType: ModuleInfoAssetType
+	FunctionType: ModuleFunction,
+	FunctionChar: ModuleFunctionChar,
+	Flags: ModuleInfoFlags,
+	FunctionToChar: ModuleFunctionToChar,
+	ValidationFlags: ModuleValidationFlags,
+	Platform: ModuleInfoPlatform,
+	MODULE_PREFIX_SIZE,
+	MIN_MODULE_SUFFIX_SIZE,
+	MAX_MODULE_SUFFIX_SIZE,
+	HEADER_SIZE: HEADER_SIZE,
+	ModuleInfoExtension, // Deprecated, use ExtensionType instead
+	ExtensionType: ModuleInfoExtension,
+	ModuleInfoHashExtensionType,
+	ModuleInfoSecurityMode,
+	AssetType: ModuleInfoAssetType
 };

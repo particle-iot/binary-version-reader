@@ -20,16 +20,16 @@ const fs = require('fs');
 const FirmwareModule = require('../../lib/FirmwareModule');
 const HalDescribeParser = require('../../lib/HalDescribeParser');
 
-describe('Describe parser', function() {
-	describe('getModules', function(){
-		it('returns null when describe is incorrect', function(){
+describe('Describe parser', function () {
+	describe('getModules', function () {
+		it('returns null when describe is incorrect', function () {
 			const parser = new HalDescribeParser();
 			expect(parser.getModules()).be.null;
 			expect(parser.getModules({})).be.null;
-			expect(parser.getModules({m: 'foo'})).be.null;
+			expect(parser.getModules({ m: 'foo' })).be.null;
 		});
 
-		it('returns FirmwareModules from describe', function(){
+		it('returns FirmwareModules from describe', function () {
 			const data = require('./../describes/fixed_dependencies_describe.json.js');
 			const parser = new HalDescribeParser();
 			const results = parser.getModules(data);
@@ -38,30 +38,30 @@ describe('Describe parser', function() {
 		});
 	});
 
-	describe('getSystemVersion', function(){
-		it('returns null when describe is incorrect', function(){
+	describe('getSystemVersion', function () {
+		it('returns null when describe is incorrect', function () {
 			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion()).be.null;
 		});
 
-		it('returns first system module version', function(){
+		it('returns first system module version', function () {
 			const data = require('./../describes/safe_mode_1.json.js');
 			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(6);
 		});
 
-		it('returns system version for three modules', function(){
+		it('returns system version for three modules', function () {
 			const data = require('./../describes/three_system_modules.json.js');
 			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(19);
 		});
 
-		it('works with three modules and firmware reset', function(){
+		it('works with three modules and firmware reset', function () {
 			const data = require('./../describes/three_system_modules_with_firmware_reset.json.js');
 			const parser = new HalDescribeParser();
 			expect(parser.getSystemVersion(data)).to.equal(202);
 			const modules = parser.getModules(data);
-			const restoreModule = modules.filter(function(module){
+			const restoreModule = modules.filter(function (module) {
 				return module.isFactoryLocation();
 			})[0];
 			expect(restoreModule).to.not.be.undefined;

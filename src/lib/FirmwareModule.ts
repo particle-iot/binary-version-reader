@@ -25,7 +25,7 @@ class FirmwareModule {
 	 */
 	constructor(describeMessage) {
 		/** @type {FirmwareModule[]} */
-		this.dependencies = Array.isArray(describeMessage?.d) ? describeMessage.d.map(d => new FirmwareModule(d)) : [];
+		this.dependencies = Array.isArray(describeMessage?.d) ? describeMessage.d.map((d) => new FirmwareModule(d)) : [];
 
 		if (describeMessage) {
 			// https://github.com/particle-iot/firmware-private/wiki/updating-system-firmware#describe-message-extension
@@ -100,8 +100,8 @@ class FirmwareModule {
 			s: this.maxSize,
 			vc: this.validityCheck,
 			vv: this.validityValues,
-			d: this.dependencies.map(m => m.toDescribe())
-		}
+			d: this.dependencies.map((m) => m.toDescribe())
+		};
 	}
 
 	/**
@@ -125,7 +125,10 @@ class FirmwareModule {
 
 		for (const dep of this.dependencies) {
 			const invalidDependencyModules = resolver.solveFirmwareModule(deviceModules, dep);
-			invalidModules.push.apply(invalidModules, invalidDependencyModules.map(m => new FirmwareModule(m)));
+			invalidModules.push.apply(
+				invalidModules,
+				invalidDependencyModules.map((m) => new FirmwareModule(m))
+			);
 		}
 		return invalidModules.length === 0;
 	}

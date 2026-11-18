@@ -21,7 +21,6 @@
 const HalModuleParser = require('./lib/HalModuleParser.js');
 const p = new HalModuleParser();
 
-
 const args = process.argv;
 if (args.length <= 2) {
 	console.log('no filename specified');
@@ -29,8 +28,7 @@ if (args.length <= 2) {
 }
 const filename = process.argv[2];
 
-
-p.parseFile(filename, function(result, error) {
+p.parseFile(filename, function (result, error) {
 	if (error) {
 		console.error(error.message || error);
 		process.exit(1);
@@ -43,7 +41,7 @@ p.parseFile(filename, function(result, error) {
 		return value;
 	};
 	console.log(JSON.stringify(result, replacer, 2));
-}).catch(function(err) {
+}).catch(function (err) {
 	console.error(err.message || err);
 	process.exit(1);
 });
