@@ -33,8 +33,7 @@ import * as utilities from './utilities';
  * any missing modules you might need to run that firmware.  **phew!**
  */
 export class HalDependencyResolver {
-	// `declare` emits no class field, so this property only exists once `assimilateModule()` has run
-	declare _moduleStorage?: AssimilatedModule[];
+	_moduleStorage?: AssimilatedModule[];
 
 	/**
 	 * expects a fileBuffer and the JSON describe payload for the 'm'

@@ -6,15 +6,14 @@ import * as ModuleInfo from './ModuleInfo';
  */
 export class FirmwareModule {
 	dependencies: FirmwareModule[];
-	// `declare` emits no class field, so these properties only exist on instances built from a describe message
-	declare uuid?: string;
-	declare func?: string;
-	declare location?: string;
-	declare name?: string;
-	declare version?: number;
-	declare maxSize?: number;
-	declare validityCheck?: number;
-	declare validityValues?: number;
+	uuid?: string;
+	func?: string;
+	location?: string;
+	name?: string;
+	version?: number;
+	maxSize?: number;
+	validityCheck?: number;
+	validityValues?: number;
 
 	constructor(describeMessage?: DescribeModule | null) {
 		this.dependencies = Array.isArray(describeMessage?.d) ? describeMessage.d.map((d) => new FirmwareModule(d)) : [];
