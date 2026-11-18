@@ -13,59 +13,44 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-const FirmwareModule = require('./FirmwareModule');
-
-/**
- * A device's describe message. Only the module list is read here.
- *
- * @typedef {object} Describe
- * @property {FirmwareModule.DescribeModule[]} [m] Modules on the device
- */
+import { FirmwareModule, type DescribeModule } from './FirmwareModule';
 
 // TODO: Move describe related functions here
-class HalDescribeParser {
+export class HalDescribeParser {
 	/**
 	 * Finds the version of the device's system modules, which is the Device OS module version.
 	 *
-	 * @param {Describe | null} [describe]
-	 * @returns {number | null | undefined} `null` when the describe message has no modules or no system module
+	 * @returns `null` when the describe message has no modules or no system module
 	 */
-	getSystemVersion(describe) {
+	getSystemVersion(describe?: Describe | null): number | null | undefined {
 		const modules = this.getModules(describe);
 		if (!modules) {
 			return null;
 		}
 		const systemModules = modules
-			.filter(function filter(item) {
-				return item.isSystemModule();
-			})
-			.sort(function sort(a, b) {
-				return a.version > b.version;
-			});
+			.filter((item) => item.isSystemModule())
+			.toSorted((a, b) => Number((a.version ?? 0) > (b.version ?? 0)));
 
-		if (systemModules.length === 0) {
+		const [first] = systemModules;
+		if (!first) {
 			// We are expecting at least one system module
 			return null;
 		}
 		// Pick first module and return its version
-		return systemModules[0].version;
+		return first.version;
 	}
 
-	/**
-	 * @param {Describe | null} [describe]
-	 * @returns {FirmwareModule[] | null} `null` when the describe message has no module list
-	 */
-	getModules(describe) {
-		const modules = [];
+	/** @returns `null` when the describe message has no module list */
+	getModules(describe?: Describe | null): FirmwareModule[] | null {
 		if (!describe || !Array.isArray(describe.m)) {
 			return null;
 		}
-		for (let i = 0; i < describe.m.length; i++) {
-			modules.push(new FirmwareModule(describe.m[i]));
-		}
-		return modules;
+		return describe.m.map((m) => new FirmwareModule(m));
 	}
 }
 
-module.exports = HalDescribeParser;
+/** A device's describe message. Only the module list is read here. */
+export interface Describe {
+	/** Modules on the device */
+	m?: DescribeModule[];
+}

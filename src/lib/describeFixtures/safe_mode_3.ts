@@ -5,7 +5,7 @@
  *
  */
 
-module.exports = {
+export default {
 	f: [],
 	v: {},
 	p: 6,

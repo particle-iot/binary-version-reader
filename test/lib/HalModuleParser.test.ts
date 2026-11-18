@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import assert from 'assert';
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -14,37 +14,47 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 /**
  * Created by middleca on 6/11/15.
  */
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-const path = require('path');
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 
-const HalModuleParser = require('../../lib/HalModuleParser.js');
-const ModuleInfo = require('../../lib/ModuleInfo.js');
-const createFirmwareBinary = require('../../lib/firmwareTestHelper').createFirmwareBinary;
-const config = require('../../lib/config.js').config;
+import { config, type Config } from '../../src/lib/config';
+import { createFirmwareBinary } from '../../src/lib/firmwareTestHelper';
+import { HalModuleParser, type PrefixInfo } from '../../src/lib/HalModuleParser';
+import * as ModuleInfo from '../../src/lib/ModuleInfo';
+import * as main from '../../src/main';
 
 const settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
+/**
+ * @param f Module function
+ * @param n Module index
+ * @param v Module version
+ * @returns The offset after the dependency
+ */
+function writeModuleDependency(buffer: Buffer, offset: number, f: number, n: number, v: number): number {
+	offset = buffer.writeUInt8(f, offset);
+	offset = buffer.writeUInt8(n, offset);
+	return buffer.writeUInt16LE(v, offset);
+}
+
 describe('HalModuleParser', function () {
 	it("should fail gracefully when the file doesn't exist or is empty", async function () {
 		const filename = path.join(settings.binaries, 'emptybin.bin');
 		const parser = new HalModuleParser();
-		try {
-			await parser._loadFile(filename);
-			throw new Error('should have failed');
-		} catch (err) {}
+		await expect(parser._loadFile(filename)).rejects.toThrow('was empty');
 	});
 
 	it('should succeed when the file exists', async function () {
 		const filename = path.join(settings.binaries, '040_system-part1.bin');
 		const parser = new HalModuleParser();
-		return parser._loadFile(filename);
+		await expect(parser._loadFile(filename)).resolves.toBeInstanceOf(Buffer);
 	});
 
 	it('should validate the CRC in the binary', async function () {
@@ -53,10 +63,10 @@ describe('HalModuleParser', function () {
 
 		const buffer = await parser._loadFile(filename);
 		const crcInfo = await parser._validateCRC(buffer);
-		expect(crcInfo).be.ok;
-		expect(crcInfo.ok).be.ok;
-		expect(crcInfo.actualCrc).be.ok;
-		expect(crcInfo.storedCrc).eql(crcInfo.actualCrc);
+		assert(crcInfo);
+		expect(crcInfo.ok).toBeTruthy();
+		expect(crcInfo.actualCrc).toBeTruthy();
+		expect(crcInfo.storedCrc).toEqual(crcInfo.actualCrc);
 	});
 
 	it('should read prefix info from part 1', async function () {
@@ -82,9 +92,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read prefix info from part 2', async function () {
@@ -110,9 +120,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read prefix info from a user module', async function () {
@@ -138,9 +148,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read prefix info from monolithic firmware', async function () {
@@ -166,9 +176,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read suffix info from system part 1', async function () {
@@ -184,9 +194,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
 	});
 
 	it('should read suffix info from system part 2', async function () {
@@ -202,9 +212,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
 	});
 
 	it('should read suffix info from the user part', async function () {
@@ -220,9 +230,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
 	});
 
 	it('should read info from a bootloader module', async function () {
@@ -258,17 +268,17 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should have a working example', async function () {
 		const filename = path.join(settings.binaries, '040_user-part.bin');
-		const Reader = require('../../main.js').HalModuleParser;
+		const Reader = main.HalModuleParser;
 		const reader = new Reader();
 		const fileInfo = await reader.parseFile(filename);
-		expect(fileInfo).be.ok;
+		expect(fileInfo).toBeTruthy();
 	});
 
 	it('should work with bluz system-part', async function () {
@@ -294,9 +304,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with xenon system part', async function () {
@@ -322,9 +332,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with xenon user part', async function () {
@@ -350,9 +360,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with xenon bootloader', async function () {
@@ -378,9 +388,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with argon ncp', async function () {
@@ -406,9 +416,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with boron-som system part', async function () {
@@ -434,9 +444,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should work with argon softdevice (radio stack)', async function () {
@@ -462,17 +472,14 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	describe('given a module descriptor', function () {
-		/**
-		 * @param {object} module Prefix fields to encode
-		 * @returns {Buffer} A 24-byte module prefix
-		 */
-		function buildModule(module) {
+		/** @returns A 24-byte module prefix */
+		function buildModule(module: typeof testModule1): Buffer {
 			const buffer = Buffer.alloc(24);
 			let offset = 0;
 			offset = buffer.writeUInt32LE(module.moduleStartAddy, offset);
@@ -499,21 +506,7 @@ describe('HalModuleParser', function () {
 			return buffer;
 		}
 
-		/**
-		 * @param {Buffer} buffer
-		 * @param {number} offset
-		 * @param {number} f Module function
-		 * @param {number} n Module index
-		 * @param {number} v Module version
-		 * @returns {number} The offset after the dependency
-		 */
-		function writeModuleDependency(buffer, offset, f, n, v) {
-			offset = buffer.writeUInt8(f, offset);
-			offset = buffer.writeUInt8(n, offset);
-			return buffer.writeUInt16LE(v, offset);
-		}
-
-		let buffer;
+		let buffer: Buffer;
 
 		const testModule1 = {
 			moduleStartAddy: 0x12345678,
@@ -536,11 +529,9 @@ describe('HalModuleParser', function () {
 		});
 
 		describe('when the buffer is parsed', function () {
-			let module;
+			let module: PrefixInfo;
 			beforeEach(function () {
 				const parser = new HalModuleParser();
-				const buf = Buffer.alloc(buffer.length);
-				buffer.copy(buf);
 				parser._findModulePrefixOffset = function () {
 					return 0;
 				};
@@ -548,16 +539,16 @@ describe('HalModuleParser', function () {
 			});
 
 			it('parses the module version as 16-bits LE', function () {
-				expect(module).have.property('depModuleVersion').eql(345);
+				expect(module).toHaveProperty('depModuleVersion', 345);
 			});
 
 			it('parses the 2nd module version as 16-bits LE', function () {
-				expect(module).have.property('dep2ModuleVersion').eql(3456);
+				expect(module).toHaveProperty('dep2ModuleVersion', 3456);
 			});
 		});
 	});
 
-	it('allows parsing prefix and suffix info separately', function () {
+	it('allows parsing prefix and suffix info separately', async function () {
 		const file = path.join(settings.binaries, '040_system-part1.bin');
 		const expectedPrefixInfo = {
 			moduleStartAddy: '8020000',
@@ -587,21 +578,16 @@ describe('HalModuleParser', function () {
 		};
 		const fileBuffer = fs.readFileSync(file);
 		const parser = new HalModuleParser();
-		return parser
-			.parsePrefix({ fileBuffer: fileBuffer })
-			.then(function (fileInfo) {
-				expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
-				expect(fileInfo).not.have.property('suffixInfo');
-				return parser.parseSuffix({ fileBuffer: fileBuffer });
-			})
-			.then(function (fileInfo) {
-				expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
-				expect(fileInfo).not.have.property('prefixInfo');
-			});
+		const prefixOnly = await parser.parsePrefix({ fileBuffer: fileBuffer });
+		expect(prefixOnly.prefixInfo).toEqual(expectedPrefixInfo);
+		expect(prefixOnly).not.toHaveProperty('suffixInfo');
+		const suffixOnly = await parser.parseSuffix({ fileBuffer: fileBuffer });
+		expect(suffixOnly.suffixInfo).toEqual(expectedSuffixInfo);
+		expect(suffixOnly).not.toHaveProperty('prefixInfo');
 	});
 
 	describe('given that a custom CRC-32 function is provided globally', function () {
-		let defaultCrc32 = null;
+		let defaultCrc32: Config['crc32'];
 
 		beforeAll(function () {
 			defaultCrc32 = config().crc32;
@@ -611,17 +597,14 @@ describe('HalModuleParser', function () {
 			config({ crc32: defaultCrc32 });
 		});
 
-		it('uses that function for CRC-32 computations', function () {
+		it('uses that function for CRC-32 computations', async function () {
 			const dummyCrc = Buffer.from([0xaa, 0xbb, 0xcc, 0xdd]);
 			config({
-				crc32: function (buf) {
-					return dummyCrc;
-				}
+				crc32: () => dummyCrc
 			});
 			const parser = new HalModuleParser();
-			return parser.parseBuffer({ fileBuffer: createFirmwareBinary() }).then(function (fileInfo) {
-				expect(fileInfo.crc.actualCrc).eql(dummyCrc.toString('hex'));
-			});
+			const fileInfo = await parser.parseBuffer({ fileBuffer: createFirmwareBinary() });
+			expect(fileInfo.crc.actualCrc).toEqual(dummyCrc.toString('hex'));
 		});
 	});
 
@@ -648,9 +631,9 @@ describe('HalModuleParser', function () {
 
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read suffix info from P2 user part with larger module suffix containing extensions', async function () {
@@ -686,9 +669,9 @@ describe('HalModuleParser', function () {
 		};
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.crc.ok).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.crc.ok).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
 	});
 
 	it('should read prefix info from P2 user part with larger module prefix containing extensions', async function () {
@@ -775,9 +758,9 @@ describe('HalModuleParser', function () {
 		};
 		const parser = new HalModuleParser();
 		const fileInfo = await parser.parseFile(filename);
-		expect(fileInfo).be.ok;
-		expect(fileInfo.suffixInfo).eql(expectedSuffixInfo);
-		expect(fileInfo.prefixInfo).eql(expectedPrefixInfo);
+		expect(fileInfo).toBeTruthy();
+		expect(fileInfo.suffixInfo).toEqual(expectedSuffixInfo);
+		expect(fileInfo.prefixInfo).toEqual(expectedPrefixInfo);
 	});
 
 	it('should read asset extensions from P2 application binary', async () => {
@@ -796,7 +779,7 @@ describe('HalModuleParser', function () {
 				name: 'unknown.bin'
 			}
 		];
-		expect(parsed.assets).eql(expectedAssets);
+		expect(parsed.assets).toEqual(expectedAssets);
 	});
 
 	it('should read asset extensions from Tracker application binary', async () => {
@@ -820,36 +803,36 @@ describe('HalModuleParser', function () {
 				name: 'km4_image2_all.bin'
 			}
 		];
-		expect(parsed.assets).eql(expectedAssets);
+		expect(parsed.assets).toEqual(expectedAssets);
 	});
 
 	it('should read security extension from P2 bootloader binary', async () => {
 		const filename = path.join(settings.binaries, 'p2-bootloader-protected.bin');
 		const parser = new HalModuleParser();
 		const parsed = await parser.parseFile(filename);
-		expect(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		expect(parsed.security?.mode).toEqual(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 	});
 
 	it('should read security extension from Tracker bootloader binary', async () => {
 		const filename = path.join(settings.binaries, 'tracker-bootloader-protected.bin');
 		const parser = new HalModuleParser();
 		const parsed = await parser.parseFile(filename);
-		expect(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		expect(parsed.security?.mode).toEqual(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 	});
 
 	it('should read security extension with cert from P2 bootloader binary', async () => {
 		const filename = path.join(settings.binaries, 'p2-bootloader-protected-cert.bin');
 		const parser = new HalModuleParser();
 		const parsed = await parser.parseFile(filename);
-		expect(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
-		expect(parsed.security.certificate.length).eql(300);
+		expect(parsed.security?.mode).toEqual(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		expect(parsed.security?.certificate?.length).toEqual(300);
 	});
 
 	it('should read security extension with cert from Tracker bootloader binary', async () => {
 		const filename = path.join(settings.binaries, 'tracker-bootloader-protected-cert.bin');
 		const parser = new HalModuleParser();
 		const parsed = await parser.parseFile(filename);
-		expect(parsed.security.mode).eql(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
-		expect(parsed.security.certificate.length).eql(300);
+		expect(parsed.security?.mode).toEqual(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
+		expect(parsed.security?.certificate?.length).toEqual(300);
 	});
 });

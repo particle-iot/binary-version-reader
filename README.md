@@ -1,27 +1,25 @@
 # The Particle Binary Version Reader!
 
-If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware!  This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
+If you're building firmware on the Particle Platform, you might be curious to see the metadata stored in your firmware! This module will read any metadata stored in the various modules (bootloader, system, user), and help you understand any dependencies.
 
 [![Build Status](https://github.com/particle-iot/binary-version-reader/actions/workflows/ci.yaml/badge.svg)](https://github.com/particle-iot/binary-version-reader/actions)
-
-
 
 ## Usage
 
 ```js
-    const Reader = require('binary-version-reader').HalModuleParser;
-    const reader = new Reader();
-    reader.parseFile('your_binary.bin', function(fileInfo, err) {
-        console.log(fileInfo);
-    });
+const Reader = require('binary-version-reader').HalModuleParser;
+const reader = new Reader();
+reader.parseFile('your_binary.bin', function (fileInfo, err) {
+	console.log(fileInfo);
+});
 ```
 
-The package ships TypeScript declarations, generated from the JSDoc in `lib/`. Types for parse results live on the classes that produce them:
+The package is written in TypeScript and ships its declarations. Types are exported by name:
 
 ```ts
-import { HalModuleParser, ModuleInfo } from 'binary-version-reader';
+import { HalModuleParser, ModuleInfo, type FileInfo } from 'binary-version-reader';
 
-const fileInfo: HalModuleParser.FileInfo = await new HalModuleParser().parseBuffer({ fileBuffer });
+const fileInfo: FileInfo = await new HalModuleParser().parseBuffer({ fileBuffer });
 if (fileInfo.prefixInfo.depModuleFunction === ModuleInfo.FunctionType.SYSTEM_PART) {
 	console.log(fileInfo.prefixInfo.depModuleVersion);
 }
@@ -43,41 +41,40 @@ npx binary-version-reader your_binary.bin | jq '.prefixInfo.moduleVersion'
 
 ```json
 {
-  "filename": "your_binary.bin",
-  "crc": {
-    "ok": true,
-    "storedCrc": "b138f375",
-    "actualCrc": "b138f375"
-  },
-  "prefixInfo": {
-    "moduleStartAddy": "80a0000",
-    "moduleEndAddy": "80a128c",
-    "reserved": 0,
-    "moduleFlags": 0,
-    "moduleVersion": 2,
-    "platformID": 6,
-    "moduleFunction": 5,
-    "moduleIndex": 1,
-    "depModuleFunction": 4,
-    "depModuleIndex": 2,
-    "depModuleVersion": 1,
-    "dep2ModuleFunction": 0,
-    "dep2ModuleIndex": 0,
-    "dep2ModuleVersion": 0,
-    "prefixSize": 24,
-    "prefixOffset": 0
-  },
-  "suffixInfo": {
-    "productId": -1,
-    "productVersion": -1,
-    "fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
-    "reserved": 0,
-    "suffixSize": 36,
-    "crcBlock": "b138f375"
-  }
+	"filename": "your_binary.bin",
+	"crc": {
+		"ok": true,
+		"storedCrc": "b138f375",
+		"actualCrc": "b138f375"
+	},
+	"prefixInfo": {
+		"moduleStartAddy": "80a0000",
+		"moduleEndAddy": "80a128c",
+		"reserved": 0,
+		"moduleFlags": 0,
+		"moduleVersion": 2,
+		"platformID": 6,
+		"moduleFunction": 5,
+		"moduleIndex": 1,
+		"depModuleFunction": 4,
+		"depModuleIndex": 2,
+		"depModuleVersion": 1,
+		"dep2ModuleFunction": 0,
+		"dep2ModuleIndex": 0,
+		"dep2ModuleVersion": 0,
+		"prefixSize": 24,
+		"prefixOffset": 0
+	},
+	"suffixInfo": {
+		"productId": -1,
+		"productVersion": -1,
+		"fwUniqueId": "f9f552aa98d7e3eab750862a01743024a4d05514021598a4341b3d83b37eda36",
+		"reserved": 0,
+		"suffixSize": 36,
+		"crcBlock": "b138f375"
+	}
 }
 ```
-
 
 ## Testing firmware binaries
 
@@ -95,11 +92,11 @@ const binary = firmwareTestHelper.createFirmwareBinary({ productId: 123, product
 Packages are only released from the `master` branch after peer review.
 
 1. make sure you have the latest:
-	* `$ git checkout master`
-	* `$ git pull`
+   - `$ git checkout master`
+   - `$ git pull`
 2. make sure tests pass
-	* `$ npm test`
+   - `$ npm test`
 3. bump the version
-	* `$ npm version <major|minor|patch>`
+   - `$ npm version <major|minor|patch>`
 4. push your tags:
-	* `$ git push origin main --follow-tags`
+   - `$ git push origin main --follow-tags`

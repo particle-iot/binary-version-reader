@@ -1,4 +1,13 @@
 import { describe, it, expect } from 'vitest';
+
+import { FirmwareModule } from '../../src/lib/FirmwareModule';
+import { describeFixtures } from '../../src/lib/firmwareTestHelper';
+import { HalDescribeParser } from '../../src/lib/HalDescribeParser';
+
+const fixedDependenciesDescribe = describeFixtures.fixedDependenciesDescribe();
+const safeMode1 = describeFixtures.safeMode1();
+const threeSystemModules = describeFixtures.threeSystemModules();
+const threeSystemModulesWithFirmwareReset = describeFixtures.threeSystemModulesWithFirmwareReset();
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -15,57 +24,51 @@ import { describe, it, expect } from 'vitest';
  *  limitations under the License.
  */
 
-const fs = require('fs');
-
-const FirmwareModule = require('../../lib/FirmwareModule');
-const HalDescribeParser = require('../../lib/HalDescribeParser');
-
 describe('Describe parser', function () {
 	describe('getModules', function () {
 		it('returns null when describe is incorrect', function () {
 			const parser = new HalDescribeParser();
-			expect(parser.getModules()).be.null;
-			expect(parser.getModules({})).be.null;
-			expect(parser.getModules({ m: 'foo' })).be.null;
+			expect(parser.getModules()).toBeNull();
+			expect(parser.getModules({})).toBeNull();
+			// @ts-expect-error an invalid module list is rejected at runtime
+			expect(parser.getModules({ m: 'foo' })).toBeNull();
 		});
 
 		it('returns FirmwareModules from describe', function () {
-			const data = require('./../describes/fixed_dependencies_describe.json.js');
+			const data = fixedDependenciesDescribe;
 			const parser = new HalDescribeParser();
 			const results = parser.getModules(data);
-			expect(results).length(5);
-			expect(results[0] instanceof FirmwareModule).be.true;
+			expect(results).toHaveLength(5);
+			expect(results?.[0] instanceof FirmwareModule).toBe(true);
 		});
 	});
 
 	describe('getSystemVersion', function () {
 		it('returns null when describe is incorrect', function () {
 			const parser = new HalDescribeParser();
-			expect(parser.getSystemVersion()).be.null;
+			expect(parser.getSystemVersion()).toBeNull();
 		});
 
 		it('returns first system module version', function () {
-			const data = require('./../describes/safe_mode_1.json.js');
+			const data = safeMode1;
 			const parser = new HalDescribeParser();
-			expect(parser.getSystemVersion(data)).to.equal(6);
+			expect(parser.getSystemVersion(data)).toBe(6);
 		});
 
 		it('returns system version for three modules', function () {
-			const data = require('./../describes/three_system_modules.json.js');
+			const data = threeSystemModules;
 			const parser = new HalDescribeParser();
-			expect(parser.getSystemVersion(data)).to.equal(19);
+			expect(parser.getSystemVersion(data)).toBe(19);
 		});
 
 		it('works with three modules and firmware reset', function () {
-			const data = require('./../describes/three_system_modules_with_firmware_reset.json.js');
+			const data = threeSystemModulesWithFirmwareReset;
 			const parser = new HalDescribeParser();
-			expect(parser.getSystemVersion(data)).to.equal(202);
+			expect(parser.getSystemVersion(data)).toBe(202);
 			const modules = parser.getModules(data);
-			const restoreModule = modules.filter(function (module) {
-				return module.isFactoryLocation();
-			})[0];
-			expect(restoreModule).to.not.be.undefined;
-			expect(restoreModule.version).to.equal(3);
+			const restoreModule = modules!.find((module) => module.isFactoryLocation());
+			expect(restoreModule).toBeDefined();
+			expect(restoreModule?.version).toBe(3);
 		});
 	});
 });

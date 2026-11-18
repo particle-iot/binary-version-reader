@@ -1,7 +1,7 @@
 /**
  * Payload with a module requiring multiple dependencies
  */
-module.exports = {
+export default {
 	p: 10,
 	imei: 'XXXXXXXXXXX',
 	iccid: 'YYYYYYYYYYYYYYY',

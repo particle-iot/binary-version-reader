@@ -1,5 +1,25 @@
 'use strict';
-import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { describe, it, expect, onTestFinished, vi } from 'vitest';
+
+import { FirmwareModule } from '../../src/lib/FirmwareModule';
+import { describeFixtures } from '../../src/lib/firmwareTestHelper';
+import { HalDependencyResolver } from '../../src/lib/HalDependencyResolver';
+import type { Describe } from '../../src/lib/HalDescribeParser';
+
+const describe042 = describeFixtures.describe042();
+const describeFixture = describeFixtures.describe();
+const describeNoUsermodule = describeFixtures.describeNoUsermodule();
+const describeNoUsermodule2 = describeFixtures.describeNoUsermodule2();
+const fixedDependenciesDescribe = describeFixtures.fixedDependenciesDescribe();
+const fixedDescribe = describeFixtures.fixedDescribe();
+const multipleDependencies = describeFixtures.multipleDependencies();
+const oldDescribeFixture = describeFixtures.oldDescribe();
+const safeMode1 = describeFixtures.safeMode1();
+const safeMode2 = describeFixtures.safeMode2();
+const safeMode3 = describeFixtures.safeMode3();
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -15,44 +35,40 @@ import { describe, it, expect } from 'vitest';
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 /**
  * Created by middleca on 6/18/15.
  */
-
-const fs = require('fs');
-const path = require('path');
-const HalDependencyResolver = require('../../lib/HalDependencyResolver.js');
-const FirmwareModule = require('../../lib/FirmwareModule');
 
 const settings = {
 	binaries: path.resolve(path.join(__dirname, '../binaries'))
 };
 
+function hasMissingDependencies(describeMessage: Describe) {
+	const modules = new HalDependencyResolver().findAnyMissingDependencies(describeMessage);
+	return modules && modules.length > 0;
+}
+
 describe('HalDependencyResolver', function () {
 	it('logs and skips a module that fails to parse', async function () {
 		const resolver = new HalDependencyResolver();
-		const errors = [];
-		const originalConsoleError = console.error;
-		console.error = (...args) => errors.push(args);
-		try {
-			await resolver.assimilateModule(path.join(settings.binaries, 'emptybin.bin'));
-		} finally {
-			console.error = originalConsoleError;
-		}
-		expect(errors).to.have.lengthOf(1);
-		expect(errors[0][1]).to.be.an('error').with.property('message').that.includes('was empty');
-		expect(resolver._moduleStorage).to.eql([]);
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		onTestFinished(() => consoleError.mockRestore());
+		await resolver.assimilateModule(path.join(settings.binaries, 'emptybin.bin'));
+		expect(consoleError.mock.calls).toHaveLength(1);
+		const [, error] = consoleError.mock.calls[0]!;
+		expect(error).toBeInstanceOf(Error);
+		expect((error as Error).message).toContain('was empty');
+		expect(resolver._moduleStorage).toEqual([]);
 	});
 
 	it('repairs errors in module names and versions', function () {
-		const photonReportedModules = require('./../describes/describe.json.js').m;
-		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		const photonReportedModules = describeFixture.m;
+		const fixedTestData = fixedDescribe.m;
 
 		const resolver = new HalDependencyResolver();
 		const result = resolver._repairDescribeErrors(photonReportedModules);
 
-		expect(result).eql(fixedTestData);
+		expect(result).toEqual(fixedTestData);
 	});
 
 	it('converts binary metadata into describe format', function () {
@@ -71,11 +87,11 @@ describe('HalDependencyResolver', function () {
 		const resolver = new HalDependencyResolver();
 		const result = resolver._binaryDepsToDescribe(userPrefixInfo);
 
-		expect(result).eql(expectedDescribe);
+		expect(result).toEqual(expectedDescribe);
 	});
 
 	it('walk a dependency chain nicely', function () {
-		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
+		const fixedTestData = fixedDescribe.m;
 		const safeBinaryReqs = {
 			f: 's',
 			n: '2',
@@ -84,25 +100,26 @@ describe('HalDependencyResolver', function () {
 
 		const resolver = new HalDependencyResolver();
 		const arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
-		expect(arr).eql([]);
+		expect(arr).toEqual([]);
 	});
 
 	it('flag a module for update when out of version', function () {
-		const fixedTestData = require('./../describes/fixed_describe.json.js').m;
-		const systemPart2 = fixedTestData[2];
+		const fixedTestData = fixedDescribe.m;
+		const systemPart2 = fixedTestData[2]!;
+		const requiredVersion = systemPart2.v! + 1;
 
 		const safeBinaryReqs = {
 			f: 's',
 			n: '2',
-			v: systemPart2.v + 1
+			v: requiredVersion
 		};
 
-		const shouldBeMissing = { ...fixedTestData[2], v: systemPart2.v + 1, d: [] };
+		const shouldBeMissing = { ...systemPart2, v: requiredVersion, d: [] };
 
 		const resolver = new HalDependencyResolver();
 		const arr = resolver._walkChain(fixedTestData, safeBinaryReqs);
-		expect(arr.length).eql(1);
-		expect(arr[0]).eql(shouldBeMissing);
+		expect(arr.length).toEqual(1);
+		expect(arr[0]).toEqual(shouldBeMissing);
 	});
 
 	/**
@@ -136,8 +153,7 @@ describe('HalDependencyResolver', function () {
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
 
-		const describeFilename = path.join(settings.binaries, '../describes/old_describe.json.js');
-		const oldDescribe = require(describeFilename).m;
+		const oldDescribe = oldDescribeFixture.m;
 
 		const userFirmware = path.join(settings.binaries, '../binaries/040_user-part.bin');
 		const fileBuffer = fs.readFileSync(userFirmware);
@@ -147,14 +163,13 @@ describe('HalDependencyResolver', function () {
 		//
 		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-		expect(result).be.ok;
-		console.log('dependency resolve result had ', result.length, ' items ');
-		expect(result.length).eql(2);
+		expect(result).toBeTruthy();
+		expect(result.length).toEqual(2);
 
 		//the first thing should be part1, and the second thing part2
 
-		expect(result[0].filename).to.match(/system-part1\.bin$/);
-		expect(result[1].filename).to.match(/system-part2\.bin$/);
+		expect(result[0]!.filename).toMatch(/system-part1\.bin$/);
+		expect(result[1]!.filename).toMatch(/system-part2\.bin$/);
 	});
 
 	it('recommend modules when going from 042 to 043', async function () {
@@ -167,8 +182,7 @@ describe('HalDependencyResolver', function () {
 		await resolver.assimilateModule(part1);
 		await resolver.assimilateModule(part2);
 
-		const describeFilename = path.join(settings.binaries, '../describes/042_describe.json.js');
-		const oldDescribe = require(describeFilename).m;
+		const oldDescribe = describe042.m;
 
 		const userFirmware = path.join(settings.binaries, '../binaries/043_user-part.bin');
 		const fileBuffer = fs.readFileSync(userFirmware);
@@ -178,55 +192,51 @@ describe('HalDependencyResolver', function () {
 		//
 		const result = await resolver.parseAndResolve(oldDescribe, fileBuffer);
 
-		expect(result).be.ok;
-		console.log('dependency resolve result had ', result.length, ' items ');
-		expect(result.length).eql(2);
+		expect(result).toBeTruthy();
+		expect(result.length).toEqual(2);
 
 		//the first thing should be part1, and the second thing part2
 
-		expect(result[0].filename).to.match(/system-part1\.bin$/);
-		expect(result[1].filename).to.match(/system-part2\.bin$/);
+		expect(result[0]!.filename).toMatch(/system-part1\.bin$/);
+		expect(result[1]!.filename).toMatch(/system-part2\.bin$/);
 	});
 
 	it('rejects when detects missing dependencies', async function () {
-		const userModuleSafeMode = require('./../describes/safe_mode_2.json.js');
+		const userModuleSafeMode = safeMode2;
 		const resolver = new HalDependencyResolver();
 
-		const deps = resolver.findAnyMissingDependencies(userModuleSafeMode);
-		expect(deps).be.ok;
-		expect(deps.length).eql(1);
-		expect(deps[0].f).eql('s');
-		expect(deps[0].n).eql('2');
-		expect(deps[0].v).eql(8);
+		const deps = resolver.findAnyMissingDependencies(userModuleSafeMode)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(1);
+		expect(deps[0]!.f).toEqual('s');
+		expect(deps[0]!.n).toEqual('2');
+		expect(deps[0]!.v).toEqual(8);
 
-		try {
-			await resolver.userModuleHasMissingDependencies(userModuleSafeMode);
-			new Error('Should have rejected: ' + result);
-		} catch (err) {
-			console.log('!!!!!!!got error as expected', err);
-			expect(err).be.ok;
-			expect(err.length).eql(1);
+		const err: FirmwareModule[] = await resolver.userModuleHasMissingDependencies(userModuleSafeMode).then(
+			(result) => expect.fail(`Should have rejected: ${result}`),
+			(error) => error
+		);
+		expect(err.length).toEqual(1);
 
-			// show me the module that needs replacing!
-			expect(err[0].func).to.eql('s');
-			expect(err[0].name).to.eql('2');
-			expect(err[0].version).to.eql(8);
-		}
+		// show me the module that needs replacing!
+		expect(err[0]!.func).toEqual('s');
+		expect(err[0]!.name).toEqual('2');
+		expect(err[0]!.version).toEqual(8);
 	});
 
 	it('resolves when dependencies are met', async function () {
-		const data = require('./../describes/fixed_dependencies_describe.json.js');
+		const data = fixedDependenciesDescribe;
 		const resolver = new HalDependencyResolver();
 
-		const deps = resolver.findAnyMissingDependencies(data);
-		expect(deps).be.ok;
-		expect(deps.length).eql(0);
+		const deps = resolver.findAnyMissingDependencies(data)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(0);
 
 		return resolver.userModuleHasMissingDependencies(data);
 	});
 
 	it('solves firmware module', function () {
-		const data = require('./../describes/fixed_dependencies_describe.json.js');
+		const data = fixedDependenciesDescribe;
 		const resolver = new HalDependencyResolver();
 		const module = new FirmwareModule({
 			d: [
@@ -238,77 +248,77 @@ describe('HalDependencyResolver', function () {
 			]
 		});
 
-		let result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
-		expect(result).to.eql([]);
+		let result = resolver.solveFirmwareModule(data.m, module.dependencies[0]!);
+		expect(result).toEqual([]);
 
 		const requiredVersion = 5;
-		module.dependencies[0].version = requiredVersion;
-		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]);
-		expect(result.length).to.eql(1);
-		expect(result[0].v).to.eql(requiredVersion);
+		module.dependencies[0]!.version = requiredVersion;
+		result = resolver.solveFirmwareModule(data.m, module.dependencies[0]!);
+		expect(result.length).toEqual(1);
+		expect(result[0]!.v).toEqual(requiredVersion);
 	});
 
 	it('finds missing dependencies for example 1', async function () {
-		const data = require('./../describes/safe_mode_1.json.js');
+		const data = safeMode1;
 		const resolver = new HalDependencyResolver();
-		const results = resolver.findAnyMissingDependencies(data);
+		const results = resolver.findAnyMissingDependencies(data)!;
 
-		expect(results).be.ok;
-		expect(results.length).be.greaterThan(0);
+		expect(results).toBeTruthy();
+		expect(results.length).toBeGreaterThan(0);
 
-		const shouldBeMissing = data.m[2].d[0];
-		const dep = results[0];
+		const shouldBeMissing = data.m[2]!.d![0]!;
+		const dep = results[0]!;
 
 		//[ { s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 6, d: [] } ]
-		expect(dep.f).eql(shouldBeMissing.f);
-		expect(dep.n).eql(shouldBeMissing.n);
-		expect(dep.v).eql(shouldBeMissing.v);
+		expect(dep.f).toEqual(shouldBeMissing.f);
+		expect(dep.n).toEqual(shouldBeMissing.n);
+		expect(dep.v).toEqual(shouldBeMissing.v);
 	});
 
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
 	it('handles missing user module appropriately', async function () {
-		const describe = require('./../describes/describe_no_usermodule.js');
+		const describeMessage = describeNoUsermodule;
 		const resolver = new HalDependencyResolver();
 
 		// should have nothing missing
-		const deps = resolver.findAnyMissingDependencies(describe);
-		expect(deps).be.ok;
-		expect(deps.length).eql(0);
+		const deps = resolver.findAnyMissingDependencies(describeMessage)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(0);
 
 		// should resolve
-		return resolver.userModuleHasMissingDependencies(describe);
+		return resolver.userModuleHasMissingDependencies(describeMessage);
 	});
 
 	/**
 	 * userModuleHasMissingDependencies should resolve if "monolithic describe" (missing user module)
 	 */
 	it('handles missing user module with missing stuff appropriately', async function () {
-		const describe = require('./../describes/describe_no_usermodule2.js');
+		const describeMessage = describeNoUsermodule2;
 		const resolver = new HalDependencyResolver();
 
 		// should have nothing missing
-		const deps = resolver.findAnyMissingDependencies(describe);
-		expect(deps).be.ok;
-		expect(deps.length).eql(1);
+		const deps = resolver.findAnyMissingDependencies(describeMessage)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(1);
 
-		expect(deps[0].f).eql('s');
-		expect(deps[0].n).eql('1');
-		expect(deps[0].v).eql(3);
+		expect(deps[0]!.f).toEqual('s');
+		expect(deps[0]!.n).toEqual('1');
+		expect(deps[0]!.v).toEqual(3);
 
 		// should resolve without finding anything, because this describe has no usermodule.
-		return resolver.userModuleHasMissingDependencies(describe);
+		return resolver.userModuleHasMissingDependencies(describeMessage);
 	});
 
 	it('handles weird double-safe-mode case', async function () {
-		const describe = require('./../describes/safe_mode_3.json.js');
+		const describeMessage = safeMode3;
 		const resolver = new HalDependencyResolver();
 
 		// should have nothing missing
-		const deps = resolver.findAnyMissingDependencies(describe);
-		expect(deps).be.ok;
-		expect(deps.length).eql(2);
+		const deps = resolver.findAnyMissingDependencies(describeMessage)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(2);
 
 		// since we're processing the modules in listed order, and since I think
 		// they're also sorta in dependency order (part1 comes before part2), I think we're okay here.
@@ -320,28 +330,23 @@ describe('HalDependencyResolver', function () {
 	});
 
 	it('handles multiple dependencies', async function () {
-		const describe = require('./../describes/multiple_dependencies.json.js');
+		const describeMessage = multipleDependencies;
 		const resolver = new HalDependencyResolver();
 
-		const deps = resolver.findAnyMissingDependencies(describe);
-		expect(deps).be.ok;
-		expect(deps.length).eql(1);
+		const deps = resolver.findAnyMissingDependencies(describeMessage)!;
+		expect(deps).toBeTruthy();
+		expect(deps.length).toEqual(1);
 
 		// The missing dependency is a bootloader
-		const m = describe.m[2].d[1];
-		expect(deps[0].f).eql(m.f);
-		expect(deps[0].n).eql(m.n);
-		expect(deps[0].v).eql(m.v);
+		const m = describeMessage.m[2]!.d![1]!;
+		expect(deps[0]!.f).toEqual(m.f);
+		expect(deps[0]!.n).toEqual(m.n);
+		expect(deps[0]!.v).toEqual(m.v);
 	});
 
 	describe('factory image', () => {
-		function hasMissingDependencies(describe) {
-			const modules = new HalDependencyResolver().findAnyMissingDependencies(describe);
-			return modules && modules.length > 0;
-		}
-
 		it('does not report safe mode for factory modules that are invalid', () => {
-			const describe = {
+			const describeMessage = {
 				p: 13,
 				m: [
 					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
@@ -385,11 +390,11 @@ describe('HalDependencyResolver', function () {
 				]
 			};
 
-			expect(hasMissingDependencies(describe)).to.be.eql(false);
+			expect(hasMissingDependencies(describeMessage)).toEqual(false);
 		});
 
 		it('does not report safe mode for factory modules that are invalid', () => {
-			const describe = {
+			const describeMessage = {
 				p: 13,
 				m: [
 					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
@@ -433,11 +438,11 @@ describe('HalDependencyResolver', function () {
 				]
 			};
 
-			expect(hasMissingDependencies(describe)).to.be.eql(false);
+			expect(hasMissingDependencies(describeMessage)).toEqual(false);
 		});
 
 		it('does not report safe mode for factory modules that are valid', () => {
-			const describe = {
+			const describeMessage = {
 				p: 13,
 				m: [
 					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
@@ -481,11 +486,11 @@ describe('HalDependencyResolver', function () {
 				]
 			};
 
-			expect(hasMissingDependencies(describe)).to.be.eql(false);
+			expect(hasMissingDependencies(describeMessage)).toEqual(false);
 		});
 
 		it('does not report safe mode for no missing dependencies', () => {
-			const describe = {
+			const describeMessage = {
 				p: 13,
 				m: [
 					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
@@ -519,11 +524,11 @@ describe('HalDependencyResolver', function () {
 				]
 			};
 
-			expect(hasMissingDependencies(describe)).to.be.eql(false);
+			expect(hasMissingDependencies(describeMessage)).toEqual(false);
 		});
 
 		it('reports safe mode for missing application dependencies', () => {
-			const describe = {
+			const describeMessage = {
 				p: 13,
 				m: [
 					{ s: 49152, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 300, d: [] },
@@ -557,7 +562,7 @@ describe('HalDependencyResolver', function () {
 				]
 			};
 
-			expect(hasMissingDependencies(describe)).to.be.eql(true);
+			expect(hasMissingDependencies(describeMessage)).toEqual(true);
 		});
 	});
 });

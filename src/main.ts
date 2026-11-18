@@ -18,63 +18,31 @@
  * Created by middleca on 6/11/15.
  */
 
-const HalModuleParser = require('./lib/HalModuleParser.js');
-const HalDescribeParser = require('./lib/HalDescribeParser.js');
-const HalDependencyResolver = require('./lib/HalDependencyResolver.js');
-const FirmwareModule = require('./lib/FirmwareModule.js');
-const ModuleInfo = require('./lib/ModuleInfo.js');
-const firmwareTestHelper = require('./lib/firmwareTestHelper');
-const {
-	updateModuleSha256,
-	updateModuleCrc32,
-	updateModulePrefix,
-	updateModuleSuffix,
-	compressModule,
-	decompressModule,
-	combineModules,
-	splitCombinedModules,
-	createAssetModule,
-	updateModuleAssetDependencies,
-	unwrapAssetModule,
-	createApplicationAndAssetBundle,
-	unpackApplicationAndAssetBundle,
-	sanitizeAddress,
-	isAssetValid,
-	validateAssetLimits,
-	AssetLimitError,
-	PlatformLimitError,
-	createProtectedModule,
-	addModuleExtensions,
-	removeModuleExtensions,
-	listModuleExtensions,
-	encodeEnvVarsAsset,
-	createEnvVarsAssetModule,
-	ENV_ASSET_NAME,
-	ENV_JSON_FILE,
-	MAX_ENV_SIZE
-} = require('./lib/moduleEncoding');
-const { globalConfig, config } = require('./lib/config');
-
-/**
- * @typedef {import('./lib/moduleEncoding').ModuleExtensionInput} ModuleExtensionInput
- * @typedef {import('./lib/moduleEncoding').PrefixInput} PrefixInput
- * @typedef {import('./lib/moduleEncoding').SuffixInput} SuffixInput
- * @typedef {import('./lib/moduleEncoding').NamedData} NamedData
- * @typedef {import('./lib/moduleEncoding').AssetDependencyInput} AssetDependencyInput
- * @typedef {import('./lib/moduleEncoding').ProcessedAsset} ProcessedAsset
- * @typedef {import('./lib/moduleEncoding').AssetLimitDetails} AssetLimitDetails
- * @typedef {import('./lib/moduleEncoding').UnpackedBundle} UnpackedBundle
- * @typedef {import('./lib/moduleEncoding').EnvVarsSnapshot} EnvVarsSnapshot
- * @typedef {import('./lib/config').Config} Config
- */
-
-module.exports = {
+export {
 	HalModuleParser,
-	HalDescribeParser,
+	type AssetInfo,
+	type CrcInfo,
+	type FileBufferInfo,
+	type FileInfo,
+	type ModuleExtension,
+	type ParseCallback,
+	type ParsedFileFields,
+	type PrefixInfo,
+	type SecurityInfo,
+	type SuffixInfo
+} from './lib/HalModuleParser';
+export { HalDescribeParser, type Describe } from './lib/HalDescribeParser';
+export {
 	HalDependencyResolver,
-	FirmwareModule,
-	ModuleInfo,
-	firmwareTestHelper,
+	type AssimilatedModule,
+	type BinaryModule,
+	type ModuleRequirement
+} from './lib/HalDependencyResolver';
+export { FirmwareModule, type DescribeModule } from './lib/FirmwareModule';
+export * as ModuleInfo from './lib/ModuleInfo';
+export * as firmwareTestHelper from './lib/firmwareTestHelper';
+export type { CreateFirmwareBinaryOptions, DescribeFixture, FirmwareDependency } from './lib/firmwareTestHelper';
+export {
 	updateModuleSha256,
 	updateModuleCrc32,
 	updateModulePrefix,
@@ -102,6 +70,17 @@ module.exports = {
 	ENV_ASSET_NAME,
 	ENV_JSON_FILE,
 	MAX_ENV_SIZE,
-	globalConfig,
-	config
-};
+	type ModuleExtensionInput,
+	type PrefixInput,
+	type SuffixInput,
+	type NamedData,
+	type AssetDependencyInput,
+	type ProcessedAsset,
+	type AssetLimitDetails,
+	type UnpackedBundle,
+	type EnvVarsSnapshot,
+	type ChecksumOptions,
+	type CompressOptions,
+	type AssetModuleOptions
+} from './lib/moduleEncoding';
+export { globalConfig, config, type Config } from './lib/config';

@@ -2,7 +2,7 @@
  * Payload from Electron 0.7.0-rc.3 having three system modules, a tinker user module, and a tinker firmware reset module
  */
 
-module.exports = {
+export default {
 	p: 10,
 	imei: '123456789012345',
 	iccid: '1234567890123456789',

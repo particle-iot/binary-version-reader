@@ -3,7 +3,7 @@
  * no usermodule
  */
 
-module.exports = {
+export default {
 	m: [
 		{ s: 16384, l: 'm', vc: 30, vv: 30, f: 'b', n: '0', v: 3, d: [] },
 		{ s: 262144, l: 'm', vc: 30, vv: 30, f: 's', n: '1', v: 2, d: [] },

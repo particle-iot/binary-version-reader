@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
  *  Copyright 2015 Particle ( https://particle.io )
  *
@@ -18,30 +19,19 @@
  * Created by middleca on 6/23/15.
  */
 
-const HalModuleParser = require('./lib/HalModuleParser.js');
-const p = new HalModuleParser();
+/* oxlint-disable no-console */
+import { inspectFile } from './lib/inspectFile';
 
-const args = process.argv;
-if (args.length <= 2) {
+const filename = process.argv[2];
+if (filename === undefined) {
 	console.log('no filename specified');
 	process.exit(-1);
 }
-const filename = process.argv[2];
 
-p.parseFile(filename, function (result, error) {
-	if (error) {
-		console.error(error.message || error);
+inspectFile(filename).then(
+	(output) => console.log(output),
+	(error: unknown) => {
+		console.error((error instanceof Error && error.message) || error);
 		process.exit(1);
 	}
-	delete result.fileBuffer;
-	const replacer = (key, value) => {
-		if (value && value.type === 'Buffer' && Array.isArray(value.data)) {
-			return Buffer.from(value.data).toString('hex');
-		}
-		return value;
-	};
-	console.log(JSON.stringify(result, replacer, 2));
-}).catch(function (err) {
-	console.error(err.message || err);
-	process.exit(1);
-});
+);

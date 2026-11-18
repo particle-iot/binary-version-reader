@@ -5,7 +5,7 @@
  * user app has no dependencies (saw this in the wild)
  */
 
-module.exports = {
+export default {
 	f: [],
 	v: {},
 	p: 6,

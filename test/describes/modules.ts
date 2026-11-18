@@ -1,4 +1,4 @@
-module.exports = {
+export default {
 	message: {
 		s: 131072,
 		l: 'm',

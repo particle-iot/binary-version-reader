@@ -18,145 +18,26 @@
  * Created by middleca on 6/11/15.
  */
 
-const fs = require('fs');
-const utilities = require('./utilities.js');
-const ModuleInfo = require('./ModuleInfo');
+import * as fs from 'fs';
 
-const MIN_MODULE_SUFFIX_SIZE = ModuleInfo.MIN_MODULE_SUFFIX_SIZE;
+import * as ModuleInfo from './ModuleInfo';
+import * as utilities from './utilities';
 
-//Buffer is global
-
-/**
- * A module extension read from a module's prefix or suffix. Fields other than `type`, `length`, `offset`
- * and `data` are only set for the extension types that carry them.
- *
- * @typedef {object} ModuleExtension
- * @property {number} type One of `ModuleInfo.ExtensionType`
- * @property {number} length Size in bytes, including the 4-byte type/length header
- * @property {number} offset Offset of the extension in the parsed buffer
- * @property {Buffer} data Raw bytes of the extension, including the header
- * @property {number} [productId] `PRODUCT_DATA` (lower 16 bits only)
- * @property {number} [productVersion] `PRODUCT_DATA`
- * @property {string} [moduleStartAddress] `DYNAMIC_LOCATION`, hex-encoded
- * @property {string} [dynalibLoadAddress] `DYNAMIC_LOCATION`, hex-encoded
- * @property {string} [dynalibStartAddress] `DYNAMIC_LOCATION`, hex-encoded
- * @property {number} [moduleFunction] `DEPENDENCY`, one of `ModuleInfo.FunctionType`
- * @property {number} [moduleIndex] `DEPENDENCY`
- * @property {number} [moduleVersion] `DEPENDENCY`
- * @property {number} [targetId] `DEPENDENCY`
- * @property {number} [hashType] `HASH` and `ASSET_DEPENDENCY`, one of `ModuleInfo.ModuleInfoHashExtensionType`
- * @property {number} [hashLength] `HASH` and `ASSET_DEPENDENCY`
- * @property {string} [hash] `HASH` and `ASSET_DEPENDENCY`, hex-encoded
- * @property {string} [name] `NAME` and `ASSET_DEPENDENCY`
- * @property {number} [securityMode] `SECURITY_MODE`, one of `ModuleInfo.ModuleInfoSecurityMode`
- * @property {Buffer} [certificate] `SECURITY_MODE`, only when the module has one
- * @property {number} [assetType] `ASSET_TYPE`, one of `ModuleInfo.AssetType`
- */
-
-/**
- * The module prefix (`module_info_t` in Device OS).
- *
- * @typedef {object} PrefixInfo
- * @property {string} moduleStartAddy Hex-encoded start address
- * @property {string} moduleEndAddy Hex-encoded end address, which is also where the CRC-32 starts
- * @property {number} reserved MCU target on Gen 3
- * @property {number} moduleFlags Bitmask of `ModuleInfo.Flags`
- * @property {number} moduleVersion
- * @property {number} platformID
- * @property {number} moduleFunction One of `ModuleInfo.FunctionType`
- * @property {number} moduleIndex
- * @property {number} depModuleFunction One of `ModuleInfo.FunctionType`, `NONE` when there is no dependency
- * @property {number} depModuleIndex
- * @property {number} depModuleVersion
- * @property {number} dep2ModuleFunction One of `ModuleInfo.FunctionType`, `NONE` when there is no second dependency
- * @property {number} dep2ModuleIndex
- * @property {number} dep2ModuleVersion
- * @property {number} prefixSize Size of the prefix in bytes, including extensions
- * @property {number} prefixOffset Offset of the prefix in the module, non-zero when e.g. an interrupt vector table comes first
- * @property {ModuleExtension[]} [extensions] Only when `moduleFlags` has `PREFIX_EXTENSIONS`
- */
-
-/**
- * The module suffix (`module_info_suffix_t` in Device OS).
- *
- * @typedef {object} SuffixInfo
- * @property {number} productId `-1` when the suffix has no product data, `0xffff` for non-product firmware
- * @property {number} productVersion `-1` when the suffix has no product data, `0xffff` for non-product firmware
- * @property {string} fwUniqueId Hex-encoded SHA-256 of the module
- * @property {number} reserved
- * @property {number} suffixSize Size of the suffix in bytes, excluding the CRC-32
- * @property {string} crcBlock Hex-encoded CRC-32 stored in the module
- * @property {ModuleExtension[]} [extensions] Only when the suffix has extensions
- */
-
-/**
- * @typedef {object} CrcInfo
- * @property {boolean} ok Whether the stored CRC-32 matches the module data
- * @property {string} storedCrc Hex-encoded
- * @property {string} actualCrc Hex-encoded
- */
-
-/**
- * An asset the module depends on, from its `ASSET_DEPENDENCY` extensions.
- *
- * @typedef {object} AssetInfo
- * @property {number} hashType One of `ModuleInfo.ModuleInfoHashExtensionType`
- * @property {string} hash Hex-encoded
- * @property {string} name
- */
-
-/**
- * @typedef {object} SecurityInfo
- * @property {number} mode One of `ModuleInfo.ModuleInfoSecurityMode`
- * @property {Buffer} [certificate]
- */
-
-/**
- * The input to `parseBuffer()`, which adds the parsed fields to it.
- *
- * @typedef {object} FileBufferInfo
- * @property {Buffer} fileBuffer Module data
- * @property {string} [filename]
- */
-
-/**
- * The result of `parseBuffer()` and `parseFile()`.
- *
- * @typedef {object} ParsedFileFields
- * @property {CrcInfo} crc
- * @property {PrefixInfo} prefixInfo
- * @property {SuffixInfo} suffixInfo
- * @property {AssetInfo[]} [assets] Only when the module depends on assets
- * @property {SecurityInfo} [security] Only when the module has a security mode
- */
-
-/**
- * @typedef {FileBufferInfo & ParsedFileFields} FileInfo
- */
-
-/**
- * @callback ParseCallback
- * @param {FileInfo | null} fileInfo `null` on error
- * @param {unknown} error `null` on success
- * @returns {void}
- */
+const { MIN_MODULE_SUFFIX_SIZE } = ModuleInfo;
+const knownFunctionTypes = new Set<number>(Object.values(ModuleInfo.FunctionType));
 
 /**
  * Understands how to parse out the header and footer metadata sections
  * of the 0.4.0 and later hal firmware for the
  * core/photon/electron / etc
  */
-class HalModuleParser {
+export class HalModuleParser {
 	/**
 	 * given a file / callback, goes and reads out all the info!
 	 *
 	 * meant to be multiply-re-entrant / thread safe
-	 *
-	 * @param {string} filename
-	 * @param {ParseCallback} [callback]
-	 * @returns {Promise<FileInfo>}
 	 */
-	async parseFile(filename, callback) {
+	async parseFile(filename: string, callback?: ParseCallback): Promise<FileInfo> {
 		const fileBuffer = await this._loadFile(filename);
 		const fileInfo = {
 			filename: filename,
@@ -183,50 +64,41 @@ class HalModuleParser {
 	 * 'fileBuffer' property set to your buffer.
 	 *
 	 * Adds the parsed fields to `fileInfo` and resolves to that same object.
-	 *
-	 * @param {FileBufferInfo} fileInfo
-	 * @param {ParseCallback} [callback]
-	 * @returns {Promise<FileInfo>}
 	 */
-	async parseBuffer(fileInfo, callback) {
+	async parseBuffer(fileInfo: FileBufferInfo, callback?: ParseCallback): Promise<FileInfo> {
 		if (!Buffer.isBuffer(fileInfo.fileBuffer)) {
 			throw new Error('fileBuffer was invalid');
 		}
 
 		try {
-			fileInfo.crc = await this._validateCRC(fileInfo.fileBuffer);
-			fileInfo.prefixInfo = await this._readPrefix(fileInfo.fileBuffer);
-			fileInfo.suffixInfo = await this._readSuffix(fileInfo.fileBuffer);
-			const assets = []
-				.concat(fileInfo.prefixInfo.extensions || [])
-				.concat(fileInfo.suffixInfo.extensions || [])
-				.filter((ext) => ext.type === ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY)
+			const parsed: ParsedFileFields = {
+				crc: computeCrc(fileInfo.fileBuffer),
+				prefixInfo: this._readPrefix(fileInfo.fileBuffer),
+				suffixInfo: this._readSuffix(fileInfo.fileBuffer)
+			};
+			const extensions = [...(parsed.prefixInfo.extensions ?? []), ...(parsed.suffixInfo.extensions ?? [])];
+			const assets = extensions
+				.filter((ext) => ext.type === ModuleInfo.ExtensionType.ASSET_DEPENDENCY)
 				.map((ext) => ({
-					hashType: ext.hashType,
-					hash: ext.hash,
-					name: ext.name
+					hashType: ext.hashType!,
+					hash: ext.hash!,
+					name: ext.name!
 				}));
 			if (assets.length > 0) {
-				fileInfo.assets = assets;
+				parsed.assets = assets;
 			}
-			const security = []
-				.concat(fileInfo.prefixInfo.extensions || [])
-				.concat(fileInfo.suffixInfo.extensions || [])
-				.filter((ext) => ext.type === ModuleInfo.ModuleInfoExtension.SECURITY_MODE)
-				.map((ext) => ({
-					mode: ext.securityMode,
-					certificate: ext.certificate
-				}));
-			if (security.length) {
-				fileInfo.security = security[0];
-				if (!fileInfo.security.certificate) {
-					delete fileInfo.security.certificate;
+			const securityExtension = extensions.find((ext) => ext.type === ModuleInfo.ExtensionType.SECURITY_MODE);
+			if (securityExtension) {
+				parsed.security = { mode: securityExtension.securityMode! };
+				if (securityExtension.certificate) {
+					parsed.security.certificate = securityExtension.certificate;
 				}
 			}
+			const result = Object.assign(fileInfo, parsed);
 			if (callback) {
-				callback(fileInfo, null);
+				callback(result, null);
 			}
-			return fileInfo;
+			return result;
 		} catch (error) {
 			if (callback) {
 				callback(null, error);
@@ -239,42 +111,31 @@ class HalModuleParser {
 	 * Parse the module's prefix info.
 	 *
 	 * Adds `prefixInfo` to `fileInfo` and resolves to that same object.
-	 *
-	 * @param {FileBufferInfo} fileInfo
-	 * @returns {Promise<FileBufferInfo & { prefixInfo: PrefixInfo }>}
 	 */
-	async parsePrefix(fileInfo) {
+	async parsePrefix<T extends FileBufferInfo>(fileInfo: T): Promise<T & { prefixInfo: PrefixInfo }> {
 		if (!Buffer.isBuffer(fileInfo.fileBuffer)) {
 			throw new Error('fileBuffer was invalid');
 		}
-		fileInfo.prefixInfo = await this._readPrefix(fileInfo.fileBuffer);
-		return fileInfo;
+		return Object.assign(fileInfo, { prefixInfo: this._readPrefix(fileInfo.fileBuffer) });
 	}
 
 	/**
 	 * Parse the module's suffix info.
 	 *
 	 * Adds `suffixInfo` to `fileInfo` and resolves to that same object.
-	 *
-	 * @param {FileBufferInfo} fileInfo
-	 * @returns {Promise<FileBufferInfo & { suffixInfo: SuffixInfo }>}
 	 */
-	async parseSuffix(fileInfo) {
+	async parseSuffix<T extends FileBufferInfo>(fileInfo: T): Promise<T & { suffixInfo: SuffixInfo }> {
 		if (!Buffer.isBuffer(fileInfo.fileBuffer)) {
 			throw new Error('fileBuffer was invalid');
 		}
-
-		fileInfo.suffixInfo = await this._readSuffix(fileInfo.fileBuffer);
-		return fileInfo;
+		return Object.assign(fileInfo, { suffixInfo: this._readSuffix(fileInfo.fileBuffer) });
 	}
 
 	/**
 	 * goes and reads out the file if it exists and returns
 	 * a promise with the fileBuffer
-	 * @param {string} filename
-	 * @returns {Promise<Buffer>}
 	 */
-	async _loadFile(filename) {
+	async _loadFile(filename: string): Promise<Buffer> {
 		if (!fs.existsSync(filename)) {
 			throw new Error(filename + " doesn't exist");
 		}
@@ -290,30 +151,14 @@ class HalModuleParser {
 	/**
 	 * calculates the CRC of the buffer, and compares it to the
 	 * stored CRC region of the file
-	 * @param {Buffer} fileBuffer
-	 * @returns {Promise<CrcInfo | false>} `false` when the buffer is empty
+	 *
+	 * @returns `false` when the buffer is empty
 	 */
-	async _validateCRC(fileBuffer) {
+	async _validateCRC(fileBuffer: Buffer): Promise<CrcInfo | false> {
 		if (!fileBuffer || fileBuffer.length === 0) {
-			//console.log('validateCRC: buffer was empty!');
 			return false;
 		}
-
-		const dataRegion = fileBuffer.subarray(0, fileBuffer.length - 4);
-		const storedCrcValue = fileBuffer.subarray(fileBuffer.length - 4, fileBuffer.length);
-
-		const crcResult = utilities.crc32(dataRegion);
-		const matching = Buffer.compare(storedCrcValue, crcResult);
-
-		const result = {
-			ok: matching === 0,
-			storedCrc: storedCrcValue.toString('hex'),
-			actualCrc: crcResult.toString('hex')
-		};
-
-		//console.log('calculated crc was ' + result.actualCrc);
-
-		return result;
+		return computeCrc(fileBuffer);
 	}
 
 	/**
@@ -322,12 +167,8 @@ class HalModuleParser {
 	 *
 	 * `score` goes from 0 to N, where 0 indicates invalid and N the highest level of confidence. `passed` is
 	 * true if the module prefix completely passed all checks.
-	 *
-	 * @param {Buffer} fileBuffer
-	 * @param {number} [offset]
-	 * @returns {{ score: number, passed: boolean }}
 	 */
-	_validateModulePrefix(fileBuffer, offset = 0) {
+	_validateModulePrefix(fileBuffer: Buffer, offset = 0): { score: number; passed: boolean } {
 		const result = { score: 0, passed: false };
 		const prefix = fileBuffer.subarray(offset, offset + ModuleInfo.MODULE_PREFIX_SIZE);
 		if (prefix.length < ModuleInfo.MODULE_PREFIX_SIZE) {
@@ -337,14 +178,8 @@ class HalModuleParser {
 		// Parse module prefix
 		const prefixInfo = this._parsePrefix(prefix, true /* test only */);
 		// Start address should be < end address
-		let startAddr = prefixInfo.moduleStartAddy;
-		if (typeof startAddr === 'string') {
-			startAddr = Number.parseInt(startAddr, 16);
-		}
-		let endAddr = prefixInfo.moduleEndAddy;
-		if (typeof endAddr === 'string') {
-			endAddr = Number.parseInt(endAddr, 16);
-		}
+		const startAddr = Number.parseInt(prefixInfo.moduleStartAddy, 16);
+		const endAddr = Number.parseInt(prefixInfo.moduleEndAddy, 16);
 		if (endAddr <= startAddr) {
 			return result;
 		}
@@ -378,15 +213,15 @@ class HalModuleParser {
 			result.score++;
 		}
 		// Increase score if module function is one of the known module function types
-		if (Object.values(ModuleInfo.FunctionType).includes(prefixInfo.moduleFunction)) {
+		if (knownFunctionTypes.has(prefixInfo.moduleFunction)) {
 			result.score++;
 		}
 		// Increase score if first dependency module function is one of the known module function types
-		if (Object.values(ModuleInfo.FunctionType).includes(prefixInfo.depModuleFunction)) {
+		if (knownFunctionTypes.has(prefixInfo.depModuleFunction)) {
 			result.score++;
 		}
 		// Increase score if second dependency module function is one of the known module function types
-		if (Object.values(ModuleInfo.FunctionType).includes(prefixInfo.dep2ModuleFunction)) {
+		if (knownFunctionTypes.has(prefixInfo.dep2ModuleFunction)) {
 			result.score++;
 		}
 		// Module size according to the module prefix exactly matches
@@ -396,7 +231,7 @@ class HalModuleParser {
 			result.score++;
 		}
 		// Module flags are known
-		const allFlags = Object.values(ModuleInfo.Flags).reduce((a, b) => a | b, 0);
+		const allFlags = Object.values(ModuleInfo.Flags).reduce((a: number, b) => a | b, 0);
 		if ((prefixInfo.moduleFlags & ~allFlags) === 0) {
 			result.score++;
 		}
@@ -411,11 +246,8 @@ class HalModuleParser {
 	 * Depending on the module type, hardware platform requirements
 	 * or other factors, module prefix may be present at a certain
 	 * non-zero offset in the module binary.
-	 *
-	 * @param {Buffer} fileBuffer
-	 * @returns {number}
 	 */
-	_findModulePrefixOffset(fileBuffer) {
+	_findModulePrefixOffset(fileBuffer: Buffer): number {
 		// This is simply an optimization to try a few preferred locations first
 		// 0x184 is the size of Gen 2 MCU (STM32F2) interrupt vector table
 		// 0x200 is the size of Gen 3 MCU (nRF52840) interrupt vector table
@@ -471,25 +303,18 @@ class HalModuleParser {
 	/**
 	 * parses out the prefix area of the binary, after attempting
 	 * to determine the correct offset.
-	 * @param {Buffer} fileBuffer
-	 * @returns {PrefixInfo}
 	 */
-	_readPrefix(fileBuffer) {
+	_readPrefix(fileBuffer: Buffer): PrefixInfo {
 		const prefixOffset = this._findModulePrefixOffset(fileBuffer);
-
-		const prefixInfo = this._parsePrefix(fileBuffer.subarray(prefixOffset));
-		prefixInfo.prefixOffset = prefixOffset;
-		return prefixInfo;
+		return { ...this._parsePrefix(fileBuffer.subarray(prefixOffset)), prefixOffset };
 	}
 
 	/**
 	 * Parses a module prefix that starts at the beginning of `r`.
 	 *
-	 * @param {Buffer} r
-	 * @param {boolean} [test] Stop at invalid extensions instead of throwing
-	 * @returns {Omit<PrefixInfo, 'prefixOffset'>}
+	 * @param test Stop at invalid extensions instead of throwing
 	 */
-	_parsePrefix(r, test) {
+	_parsePrefix(r: Buffer, test?: boolean): Omit<PrefixInfo, 'prefixOffset'> {
 		//offset 0, 4-bytes: module start address
 		let offs = 0;
 		const moduleStartAddy = r.readUInt32LE(offs).toString(16);
@@ -550,8 +375,7 @@ class HalModuleParser {
 		const dep2ModuleVersion = r.readUInt16LE(offs);
 		offs += 2;
 
-		/** @type {Omit<PrefixInfo, 'prefixOffset'>} */
-		const prefix = {
+		const prefix: Omit<PrefixInfo, 'prefixOffset'> = {
 			moduleStartAddy: moduleStartAddy,
 			moduleEndAddy: moduleEndAddy,
 			reserved: reserved,
@@ -570,7 +394,7 @@ class HalModuleParser {
 		};
 
 		if (moduleFlags & ModuleInfo.Flags.PREFIX_EXTENSIONS) {
-			const extensions = [];
+			const extensions: ModuleExtension[] = [];
 
 			while (offs < r.length - ModuleInfo.MIN_MODULE_SUFFIX_SIZE - 4) {
 				const ext = this._readExtension(r, offs);
@@ -585,11 +409,11 @@ class HalModuleParser {
 					}
 					throw new Error('Invalid extension length');
 				}
-				if (ext.type === ModuleInfo.ModuleInfoExtension.END) {
+				if (ext.type === ModuleInfo.ExtensionType.END) {
 					break;
 				}
 			}
-			if (extensions.length === 0 || extensions[extensions.length - 1].type !== ModuleInfo.ModuleInfoExtension.END) {
+			if (extensions.length === 0 || extensions.at(-1)!.type !== ModuleInfo.ExtensionType.END) {
 				if (!test) {
 					throw new Error('Prefix extensions should end with END extension');
 				}
@@ -604,24 +428,21 @@ class HalModuleParser {
 	/**
 	 * Reads the module extension at `idx`.
 	 *
-	 * @param {Buffer} fileBuffer
-	 * @param {number} idx
-	 * @returns {ModuleExtension | null} `null` for an `INVALID` extension or one that runs past the end of the buffer
+	 * @returns `null` for an `INVALID` extension or one that runs past the end of the buffer
 	 */
-	_readExtension(fileBuffer, idx) {
+	_readExtension(fileBuffer: Buffer, idx: number): ModuleExtension | null {
 		const type = fileBuffer.readUInt16LE(idx);
 		idx += 2;
 		const length = fileBuffer.readUInt16LE(idx);
 		idx += 2;
-		if (type === ModuleInfo.ModuleInfoExtension.INVALID) {
+		if (type === ModuleInfo.ExtensionType.INVALID) {
 			return null;
 		}
 		if (idx + length - 4 > fileBuffer.length) {
 			return null;
 		}
 		const offset = idx - 4;
-		/** @type {ModuleExtension} */
-		const extension = {
+		const extension: ModuleExtension = {
 			type,
 			length,
 			offset,
@@ -629,7 +450,7 @@ class HalModuleParser {
 		};
 		// For supported extensions we'll completely parse into a JS object
 		switch (type) {
-			case ModuleInfo.ModuleInfoExtension.PRODUCT_DATA: {
+			case ModuleInfo.ExtensionType.PRODUCT_DATA: {
 				// XXX: only reading out lower 16 bits
 				idx += 2;
 				extension.productId = fileBuffer.readUInt16LE(idx);
@@ -637,7 +458,7 @@ class HalModuleParser {
 				extension.productVersion = fileBuffer.readUInt16LE(idx);
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.DYNAMIC_LOCATION: {
+			case ModuleInfo.ExtensionType.DYNAMIC_LOCATION: {
 				extension.moduleStartAddress = fileBuffer.readUInt32LE(idx).toString(16);
 				idx += 4;
 				extension.dynalibLoadAddress = fileBuffer.readUInt32LE(idx).toString(16);
@@ -645,7 +466,7 @@ class HalModuleParser {
 				extension.dynalibStartAddress = fileBuffer.readUInt32LE(idx).toString(16);
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.DEPENDENCY: {
+			case ModuleInfo.ExtensionType.DEPENDENCY: {
 				extension.moduleFunction = fileBuffer.readUInt8(idx);
 				idx += 1;
 				extension.moduleIndex = fileBuffer.readUInt8(idx);
@@ -655,7 +476,7 @@ class HalModuleParser {
 				extension.targetId = fileBuffer.readUInt32LE(idx);
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.HASH: {
+			case ModuleInfo.ExtensionType.HASH: {
 				extension.hashType = fileBuffer.readUInt8(idx);
 				idx += 1;
 				extension.hashLength = fileBuffer.readUInt8(idx);
@@ -663,11 +484,11 @@ class HalModuleParser {
 				extension.hash = fileBuffer.subarray(idx, extension.offset + extension.length).toString('hex');
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.NAME: {
+			case ModuleInfo.ExtensionType.NAME: {
 				extension.name = fileBuffer.subarray(idx, extension.offset + extension.length).toString();
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.ASSET_DEPENDENCY: {
+			case ModuleInfo.ExtensionType.ASSET_DEPENDENCY: {
 				extension.hashType = fileBuffer.readUInt8(idx);
 				idx += 1;
 				extension.hashLength = fileBuffer.readUInt8(idx);
@@ -677,7 +498,7 @@ class HalModuleParser {
 				extension.name = fileBuffer.subarray(idx, extension.offset + extension.length).toString();
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.SECURITY_MODE: {
+			case ModuleInfo.ExtensionType.SECURITY_MODE: {
 				extension.securityMode = fileBuffer.readUInt8(idx);
 				idx += 1;
 				const certificate = fileBuffer.subarray(idx, extension.offset + extension.length);
@@ -686,7 +507,7 @@ class HalModuleParser {
 				}
 				break;
 			}
-			case ModuleInfo.ModuleInfoExtension.ASSET_TYPE: {
+			case ModuleInfo.ExtensionType.ASSET_TYPE: {
 				extension.assetType = fileBuffer.readUInt8(idx);
 				break;
 			}
@@ -698,11 +519,8 @@ class HalModuleParser {
 	 * parses out the suffix area of the binary, only reads back
 	 * into the file as far
 	 * as is provided by the 'suffixSize' value.
-	 *
-	 * @param {Buffer} fileBuffer
-	 * @returns {SuffixInfo}
 	 */
-	_readSuffix(fileBuffer) {
+	_readSuffix(fileBuffer: Buffer): SuffixInfo {
 		// last 4 bytes of the file are the crc
 		// 2 bytes before that is suffix payload size
 
@@ -751,12 +569,8 @@ class HalModuleParser {
 			productId = -1;
 		}
 
-		if (reserved === 0) {
-			//cool!
-		}
-
 		// Parse extensions
-		const extensions = [];
+		const extensions: ModuleExtension[] = [];
 		// NOTE: suffixSize is the size of the base module_info_suffix_t
 		// (size, reserved, sha) + all the extensions above module_info_suffix_t.
 		if (suffixSize > MIN_MODULE_SUFFIX_SIZE + 4) {
@@ -772,14 +586,13 @@ class HalModuleParser {
 				if (ext.length === 0) {
 					throw new Error('Invalid extension length');
 				}
-				if (ext.type === ModuleInfo.ModuleInfoExtension.END) {
+				if (ext.type === ModuleInfo.ExtensionType.END) {
 					break;
 				}
 			}
 		}
 
-		/** @type {SuffixInfo} */
-		const suffix = {
+		const suffix: SuffixInfo = {
 			productId: productId,
 			productVersion: productVersion,
 			fwUniqueId: fwUniqueId,
@@ -793,4 +606,159 @@ class HalModuleParser {
 		return suffix;
 	}
 }
-module.exports = HalModuleParser;
+
+function computeCrc(fileBuffer: Buffer): CrcInfo {
+	const dataRegion = fileBuffer.subarray(0, fileBuffer.length - 4);
+	const storedCrcValue = fileBuffer.subarray(fileBuffer.length - 4, fileBuffer.length);
+	const crcResult = utilities.crc32(dataRegion);
+	return {
+		ok: Buffer.compare(storedCrcValue, crcResult) === 0,
+		storedCrc: storedCrcValue.toString('hex'),
+		actualCrc: crcResult.toString('hex')
+	};
+}
+
+/**
+ * A module extension read from a module's prefix or suffix. Fields other than `type`, `length`, `offset`
+ * and `data` are only set for the extension types that carry them.
+ */
+export interface ModuleExtension {
+	/** One of `ModuleInfo.ExtensionType` */
+	type: number;
+	/** Size in bytes, including the 4-byte type/length header */
+	length: number;
+	/** Offset of the extension in the parsed buffer */
+	offset: number;
+	/** Raw bytes of the extension, including the header */
+	data: Buffer;
+	/** `PRODUCT_DATA` (lower 16 bits only) */
+	productId?: number;
+	/** `PRODUCT_DATA` */
+	productVersion?: number;
+	/** `DYNAMIC_LOCATION`, hex-encoded */
+	moduleStartAddress?: string;
+	/** `DYNAMIC_LOCATION`, hex-encoded */
+	dynalibLoadAddress?: string;
+	/** `DYNAMIC_LOCATION`, hex-encoded */
+	dynalibStartAddress?: string;
+	/** `DEPENDENCY`, one of `ModuleInfo.FunctionType` */
+	moduleFunction?: number;
+	/** `DEPENDENCY` */
+	moduleIndex?: number;
+	/** `DEPENDENCY` */
+	moduleVersion?: number;
+	/** `DEPENDENCY` */
+	targetId?: number;
+	/** `HASH` and `ASSET_DEPENDENCY`, one of `ModuleInfo.ModuleInfoHashExtensionType` */
+	hashType?: number;
+	/** `HASH` and `ASSET_DEPENDENCY` */
+	hashLength?: number;
+	/** `HASH` and `ASSET_DEPENDENCY`, hex-encoded */
+	hash?: string;
+	/** `NAME` and `ASSET_DEPENDENCY` */
+	name?: string;
+	/** `SECURITY_MODE`, one of `ModuleInfo.ModuleInfoSecurityMode` */
+	securityMode?: number;
+	/** `SECURITY_MODE`, only when the module has one */
+	certificate?: Buffer;
+	/** `ASSET_TYPE`, one of `ModuleInfo.AssetType` */
+	assetType?: number;
+}
+
+/** The module prefix (`module_info_t` in Device OS). */
+export interface PrefixInfo {
+	/** Hex-encoded start address */
+	moduleStartAddy: string;
+	/** Hex-encoded end address, which is also where the CRC-32 starts */
+	moduleEndAddy: string;
+	/** MCU target on Gen 3 */
+	reserved: number;
+	/** Bitmask of `ModuleInfo.Flags` */
+	moduleFlags: number;
+	moduleVersion: number;
+	platformID: number;
+	/** One of `ModuleInfo.FunctionType` */
+	moduleFunction: number;
+	moduleIndex: number;
+	/** One of `ModuleInfo.FunctionType`, `NONE` when there is no dependency */
+	depModuleFunction: number;
+	depModuleIndex: number;
+	depModuleVersion: number;
+	/** One of `ModuleInfo.FunctionType`, `NONE` when there is no second dependency */
+	dep2ModuleFunction: number;
+	dep2ModuleIndex: number;
+	dep2ModuleVersion: number;
+	/** Size of the prefix in bytes, including extensions */
+	prefixSize: number;
+	/** Offset of the prefix in the module, non-zero when e.g. an interrupt vector table comes first */
+	prefixOffset: number;
+	/** Only when `moduleFlags` has `PREFIX_EXTENSIONS` */
+	extensions?: ModuleExtension[];
+}
+
+/** The module suffix (`module_info_suffix_t` in Device OS). */
+export interface SuffixInfo {
+	/** `-1` when the suffix has no product data, `0xffff` for non-product firmware */
+	productId: number;
+	/** `-1` when the suffix has no product data, `0xffff` for non-product firmware */
+	productVersion: number;
+	/** Hex-encoded SHA-256 of the module */
+	fwUniqueId: string;
+	reserved: number;
+	/** Size of the suffix in bytes, excluding the CRC-32 */
+	suffixSize: number;
+	/** Hex-encoded CRC-32 stored in the module */
+	crcBlock: string;
+	/** Only when the suffix has extensions */
+	extensions?: ModuleExtension[];
+}
+
+export interface CrcInfo {
+	/** Whether the stored CRC-32 matches the module data */
+	ok: boolean;
+	/** Hex-encoded */
+	storedCrc: string;
+	/** Hex-encoded */
+	actualCrc: string;
+}
+
+/** An asset the module depends on, from its `ASSET_DEPENDENCY` extensions. */
+export interface AssetInfo {
+	/** One of `ModuleInfo.ModuleInfoHashExtensionType` */
+	hashType: number;
+	/** Hex-encoded */
+	hash: string;
+	name: string;
+}
+
+export interface SecurityInfo {
+	/** One of `ModuleInfo.ModuleInfoSecurityMode` */
+	mode: number;
+	certificate?: Buffer;
+}
+
+/** The input to `parseBuffer()`, which adds the parsed fields to it. */
+export interface FileBufferInfo {
+	/** Module data */
+	fileBuffer: Buffer;
+	filename?: string;
+}
+
+/** The fields `parseBuffer()` and `parseFile()` add. */
+export interface ParsedFileFields {
+	crc: CrcInfo;
+	prefixInfo: PrefixInfo;
+	suffixInfo: SuffixInfo;
+	/** Only when the module depends on assets */
+	assets?: AssetInfo[];
+	/** Only when the module has a security mode */
+	security?: SecurityInfo;
+}
+
+export type FileInfo = FileBufferInfo & ParsedFileFields;
+
+/**
+ * @param fileInfo `null` on error
+ * @param error `null` on success
+ */
+export type ParseCallback = (fileInfo: FileInfo | null, error: unknown) => void;

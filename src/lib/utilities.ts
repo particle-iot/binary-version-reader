@@ -13,54 +13,30 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-const { globalConfig } = require('./config');
+import { globalConfig } from './config';
 
 /**
- * Created by middleca on 6/11/15.
+ * Keeps the first item for each key.
+ *
+ * @param keyFn When not given, `arr` is returned as-is
  */
+export function dedupArray<T>(arr: T[], keyFn?: (item: T) => string): T[] {
+	if (!keyFn) {
+		return arr;
+	}
 
-module.exports = {
-	/**
-	 * Keeps the first item for each key.
-	 *
-	 * @template T
-	 * @param {T[]} arr
-	 * @param {(item: T) => string} [keyFn] When not given, `arr` is returned as-is
-	 * @returns {T[]}
-	 */
-	dedupArray: function (arr, keyFn) {
-		if (!keyFn) {
-			return arr;
+	const seen = new Set<string>();
+	return arr.filter((item) => {
+		const key = keyFn(item);
+		if (seen.has(key)) {
+			return false;
 		}
+		seen.add(key);
+		return true;
+	});
+}
 
-		const results = [];
-		/** @type {Record<string, boolean>} */
-		const hash = {};
-
-		for (let i = 0; i < arr.length; i++) {
-			const dep = arr[i];
-			const key = keyFn(dep);
-
-			if (hash[key]) {
-				continue;
-			}
-			hash[key] = true;
-
-			results.push(dep);
-		}
-		return results;
-	},
-
-	/**
-	 * Computes a CRC-32 with the function set by `config()`.
-	 *
-	 * @param {Buffer} buf
-	 * @returns {Buffer}
-	 */
-	crc32: function (buf) {
-		return globalConfig.crc32(buf);
-	},
-
-	_: null
-};
+/** Computes a CRC-32 with the function set by `config()`. */
+export function crc32(buf: Buffer): Buffer {
+	return globalConfig.crc32(buf);
+}

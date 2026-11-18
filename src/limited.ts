@@ -21,10 +21,17 @@
  * Requires stubbing `fs` in the bundler (e.g. webpack resolve.fallback: { fs: false }).
  */
 
-const HalModuleParser = require('./lib/HalModuleParser.js');
-const ModuleInfo = require('./lib/ModuleInfo.js');
-
-module.exports = {
+export {
 	HalModuleParser,
-	ModuleInfo
-};
+	type AssetInfo,
+	type CrcInfo,
+	type FileBufferInfo,
+	type FileInfo,
+	type ModuleExtension,
+	type ParseCallback,
+	type ParsedFileFields,
+	type PrefixInfo,
+	type SecurityInfo,
+	type SuffixInfo
+} from './lib/HalModuleParser';
+export * as ModuleInfo from './lib/ModuleInfo';

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
 	m: [
 		{
 			s: 16384,

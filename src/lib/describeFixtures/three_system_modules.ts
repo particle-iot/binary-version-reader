@@ -2,7 +2,7 @@
  * Payload from Electron 0.6.0 having three system modules
  */
 
-module.exports = {
+export default {
 	f: [],
 	v: {},
 	p: 10,
