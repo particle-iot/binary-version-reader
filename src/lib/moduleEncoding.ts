@@ -1211,20 +1211,21 @@ export async function validateAssetLimits(
 	const errors: AssetLimitError[] = [];
 
 	const { assets: limits } = p;
-	const processedAssets: ProcessedAsset[] = await Promise.all(
-		(assets ?? []).map(async (file) => {
-			const asset = typeof file === 'string' ? await loadNamedData(file, file) : file;
-			const assetModule = await createAssetModule(asset.data, asset.name);
-			return {
-				moduleSize: assetModule.length,
-				storageSize:
-					limits.assetOverhead +
-					Math.ceil(assetModule.length / (limits.blockSize - limits.assetPerBlockOverhead)) * limits.blockSize,
-				name: asset.name,
-				originalSize: asset.data.length
-			};
-		})
-	);
+	const processedAssets: ProcessedAsset[] = [];
+	for (const file of assets ?? []) {
+		// oxlint-disable-next-line no-await-in-loop
+		const asset = typeof file === 'string' ? await loadNamedData(file, file) : file;
+		// oxlint-disable-next-line no-await-in-loop
+		const assetModule = await createAssetModule(asset.data, asset.name);
+		processedAssets.push({
+			moduleSize: assetModule.length,
+			storageSize:
+				limits.assetOverhead +
+				Math.ceil(assetModule.length / (limits.blockSize - limits.assetPerBlockOverhead)) * limits.blockSize,
+			name: asset.name,
+			originalSize: asset.data.length
+		});
+	}
 	const totalSize = processedAssets.reduce((total, asset) => total + asset.storageSize, 0);
 
 	const details: AssetLimitDetails = {
@@ -1284,9 +1285,11 @@ export async function createApplicationAndAssetBundle(
 		});
 	}
 
-	const processedAssets = await Promise.all(
-		(assets ?? []).map(async (file) => (typeof file === 'string' ? loadNamedData(file, file) : file))
-	);
+	const processedAssets: NamedData[] = [];
+	for (const file of assets ?? []) {
+		// oxlint-disable-next-line no-await-in-loop
+		processedAssets.push(typeof file === 'string' ? await loadNamedData(file, file) : file);
+	}
 
 	let updated: Buffer | undefined;
 	if (processedAssets.length > 0) {
@@ -1332,40 +1335,45 @@ export async function unpackApplicationAndAssetBundle(bundle: Buffer | string): 
 	const result: UnpackedBundle = {
 		assets: []
 	};
-	for await (const entry of entries as AsyncIterable<unzip.Entry>) {
-		current = entry;
-		if (parseError) {
-			entry.destroy(parseError);
-		}
-		const dir = path.dirname(entry.path);
-		if (entry.type !== 'File') {
-			entry.autodrain();
-		} else if (dir === 'assets') {
-			result.assets.push({
-				name: path.basename(entry.path),
-				data: await streamConsumers.buffer(entry)
-			});
-		} else if (entry.path === ENV_JSON_FILE) {
-			const data = await streamConsumers.buffer(entry);
-			try {
-				result.env = {
+	try {
+		for await (const entry of entries as AsyncIterable<unzip.Entry>) {
+			current = entry;
+			if (parseError) {
+				entry.destroy(parseError);
+			}
+			const dir = path.dirname(entry.path);
+			if (entry.type !== 'File') {
+				entry.autodrain();
+			} else if (dir === 'assets') {
+				result.assets.push({
+					name: path.basename(entry.path),
+					data: await streamConsumers.buffer(entry)
+				});
+			} else if (entry.path === ENV_JSON_FILE) {
+				const data = await streamConsumers.buffer(entry);
+				try {
+					result.env = {
+						name: entry.path,
+						data: JSON.parse(data.toString('utf-8'))
+					};
+				} catch (err) {
+					throw new Error(`Env file at ${entry.path} is invalid: ${(err as Error).message}`, { cause: err });
+				}
+			} else if (dir === '.' && path.extname(entry.path) === '.bin') {
+				if (result.application) {
+					throw new RangeError('More applications than expected in a bundle');
+				}
+				result.application = {
 					name: entry.path,
-					data: JSON.parse(data.toString('utf-8'))
+					data: await streamConsumers.buffer(entry)
 				};
-			} catch (err) {
-				throw new Error(`Env file at ${entry.path} is invalid: ${(err as Error).message}`, { cause: err });
+			} else {
+				entry.autodrain();
 			}
-		} else if (dir === '.' && path.extname(entry.path) === '.bin') {
-			if (result.application) {
-				throw new RangeError('More applications than expected in a bundle');
-			}
-			result.application = {
-				name: entry.path,
-				data: await streamConsumers.buffer(entry)
-			};
-		} else {
-			entry.autodrain();
 		}
+	} finally {
+		current = undefined;
+		source.destroy();
 	}
 	return result;
 }

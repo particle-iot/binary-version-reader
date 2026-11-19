@@ -1,13 +1,15 @@
 /* oxlint-disable no-await-in-loop */
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import { createRequire, syncBuiltinESMExports } from 'module';
+import * as os from 'os';
 import * as path from 'path';
 import { buffer } from 'stream/consumers';
 
 import { schema as protobufSchema } from '@particle/device-os-protobuf';
 import { ZipArchive } from 'archiver';
 import crc32 from 'buffer-crc32';
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, onTestFinished } from 'vitest';
 
 import { config, type Config } from '../../src/lib/config';
 import { createFirmwareBinary } from '../../src/lib/firmwareTestHelper';
@@ -167,13 +169,34 @@ function readTestAsset(): Buffer {
 	return fs.readFileSync(TEST_ASSETS[0]!);
 }
 
-async function zipFiles(files: { name: string; data: Buffer | string }[]): Promise<Buffer> {
-	const archive = new ZipArchive();
+async function zipFiles(files: { name: string; data: Buffer | string }[], { store = false } = {}): Promise<Buffer> {
+	const archive = new ZipArchive({ store });
 	for (const { name, data } of files) {
 		archive.append(data, { name });
 	}
 	const [bundle] = await Promise.all([buffer(archive), archive.finalize()]);
 	return bundle;
+}
+
+/** Records every stream `fs.createReadStream()` opens until the test finishes */
+function captureReadStreams(): fs.ReadStream[] {
+	const streams: fs.ReadStream[] = [];
+	const fsModule = createRequire(__filename)('fs') as typeof fs;
+	const createReadStream = fsModule.createReadStream;
+	fsModule.createReadStream = (...args: Parameters<typeof createReadStream>) => {
+		const stream = createReadStream(...args);
+		streams.push(stream);
+		return stream;
+	};
+	syncBuiltinESMExports();
+	onTestFinished(() => {
+		fsModule.createReadStream = createReadStream;
+		syncBuiltinESMExports();
+		for (const stream of streams) {
+			stream.destroy();
+		}
+	});
+	return streams;
 }
 
 describe('moduleEncoding', () => {
@@ -922,13 +945,72 @@ describe('moduleEncoding', () => {
 
 		it('rejects a bundle with more than one application', async () => {
 			const application = fs.readFileSync(path.join(TEST_BINARIES_PATH, 'tracker-tinker@5.3.1.bin'));
-			const archive = new ZipArchive();
+			const archive = new ZipArchive({ store: true });
 			archive.append(application, { name: 'one.bin' });
 			archive.append(application, { name: 'two.bin' });
 			const [bundle] = await Promise.all([buffer(archive), archive.finalize()]);
 			await expect(unpackApplicationAndAssetBundle(bundle)).rejects.toThrow(
 				new RangeError('More applications than expected in a bundle')
 			);
+		});
+
+		describe('unpacking a bundle file', () => {
+			let dir: string;
+
+			beforeAll(() => {
+				dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bvr-bundle-'));
+			});
+
+			afterAll(() => {
+				fs.rmSync(dir, { recursive: true, force: true });
+			});
+
+			async function writeBundle(name: string, files: { name: string; data: Buffer | string }[]): Promise<string> {
+				const file = path.join(dir, name);
+				fs.writeFileSync(file, await zipFiles(files, { store: true }));
+				return file;
+			}
+
+			it('closes the file after unpacking it', async () => {
+				const file = await writeBundle('valid.zip', [{ name: 'app.bin', data: readTestApplication() }]);
+				const streams = captureReadStreams();
+				await unpackApplicationAndAssetBundle(file);
+				expect(streams).toHaveLength(1);
+				expect(streams[0]!.destroyed).toBe(true);
+			});
+
+			it('closes the file when unpacking fails', async () => {
+				const file = await writeBundle('invalid-env.zip', [
+					{ name: 'app.bin', data: readTestApplication() },
+					{ name: 'env.json', data: '{not json' },
+					{ name: 'assets/big.bin', data: Buffer.alloc(4 * 1024 * 1024, 1) }
+				]);
+				const streams = captureReadStreams();
+				await expect(unpackApplicationAndAssetBundle(file)).rejects.toThrow(/^Env file at env\.json is invalid: /);
+				expect(streams).toHaveLength(1);
+				expect(streams[0]!.destroyed).toBe(true);
+			});
+		});
+
+		it('rejects a bundle with two stored applications without an unhandled error', async () => {
+			const errors: unknown[] = [];
+			const onError = (error: unknown) => errors.push(error);
+			process.on('uncaughtException', onError);
+			onTestFinished(() => {
+				process.off('uncaughtException', onError);
+			});
+			const bundle = await zipFiles(
+				[
+					{ name: 'one.bin', data: readTestApplication() },
+					{ name: 'two.bin', data: readTestApplication() }
+				],
+				{ store: true }
+			);
+			await expect(unpackApplicationAndAssetBundle(bundle)).rejects.toThrow(
+				new RangeError('More applications than expected in a bundle')
+			);
+			await new Promise((resolve) => setImmediate(resolve));
+			expect(errors).toEqual([]);
 		});
 
 		describe('unpacking bundles made by other tools', () => {
