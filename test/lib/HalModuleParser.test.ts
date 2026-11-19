@@ -20,7 +20,7 @@ import assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 
 import { config, type Config } from '../../src/lib/config';
 import { createFirmwareBinary } from '../../src/lib/firmwareTestHelper';
@@ -834,5 +834,66 @@ describe('HalModuleParser', function () {
 		const parsed = await parser.parseFile(filename);
 		expect(parsed.security?.mode).toEqual(ModuleInfo.ModuleInfoSecurityMode.PROTECTED);
 		expect(parsed.security?.certificate?.length).toEqual(300);
+	});
+
+	describe('parseBuffer() with a callback', () => {
+		it('calls the callback after parseBuffer() returns for a valid module', async () => {
+			const events: string[] = [];
+			const promise = new HalModuleParser().parseBuffer({ fileBuffer: createFirmwareBinary() }, (info, error) =>
+				events.push(`callback(${info ? 'info' : 'null'}, ${error ? 'error' : 'null'})`)
+			);
+			events.push('returned');
+			await promise;
+			expect(events).toEqual(['returned', 'callback(info, null)']);
+		});
+
+		it('calls the callback after parseBuffer() returns for a buffer that fails to parse', async () => {
+			const events: string[] = [];
+			const promise = new HalModuleParser().parseBuffer({ fileBuffer: Buffer.alloc(16) }, (info, error) =>
+				events.push(`callback(${info ? 'info' : 'null'}, ${error ? 'error' : 'null'})`)
+			);
+			events.push('returned');
+			await expect(promise).rejects.toThrow(/out of range/);
+			expect(events).toEqual(['returned', 'callback(null, error)']);
+		});
+
+		it('calls a throwing callback once and rejects with its error', async () => {
+			const callback = vi.fn(() => {
+				throw new Error('callback failed');
+			});
+			await expect(new HalModuleParser().parseBuffer({ fileBuffer: createFirmwareBinary() }, callback)).rejects.toThrow(
+				'callback failed'
+			);
+			expect(callback).toHaveBeenCalledTimes(1);
+		});
+
+		it('rejects a non-Buffer without calling the callback', async () => {
+			const callback = vi.fn();
+			// @ts-expect-error a non-Buffer is rejected at runtime
+			await expect(new HalModuleParser().parseBuffer({ fileBuffer: 'not a buffer' }, callback)).rejects.toThrow(
+				'fileBuffer was invalid'
+			);
+			expect(callback).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('parseFile() with a callback', () => {
+		it('calls a throwing callback once and rejects with its error', async () => {
+			const callback = vi.fn(() => {
+				throw new Error('callback failed');
+			});
+			await expect(
+				new HalModuleParser().parseFile(path.join(settings.binaries, '040_system-part1.bin'), callback)
+			).rejects.toThrow('callback failed');
+			expect(callback).toHaveBeenCalledTimes(1);
+		});
+
+		it('does not call the callback when the file does not exist', async () => {
+			const callback = vi.fn();
+			await expect(
+				new HalModuleParser().parseFile(path.join(settings.binaries, 'missing.bin'), callback)
+			).rejects.toThrow("doesn't exist");
+			expect(callback).not.toHaveBeenCalled();
+		});
 	});
 });

@@ -39,23 +39,7 @@ export class HalModuleParser {
 	 */
 	async parseFile(filename: string, callback?: ParseCallback): Promise<FileInfo> {
 		const fileBuffer = await this._loadFile(filename);
-		const fileInfo = {
-			filename: filename,
-			fileBuffer: fileBuffer
-		};
-
-		try {
-			const allDone = await this.parseBuffer(fileInfo);
-			if (callback) {
-				callback(allDone, null);
-			}
-			return allDone;
-		} catch (error) {
-			if (callback) {
-				callback(null, error);
-			}
-			throw error;
-		}
+		return withCallback(this.parseBuffer({ filename, fileBuffer }), callback);
 	}
 
 	/**
@@ -70,41 +54,7 @@ export class HalModuleParser {
 			throw new Error('fileBuffer was invalid');
 		}
 
-		try {
-			const parsed: ParsedFileFields = {
-				crc: computeCrc(fileInfo.fileBuffer),
-				prefixInfo: this._readPrefix(fileInfo.fileBuffer),
-				suffixInfo: this._readSuffix(fileInfo.fileBuffer)
-			};
-			const extensions = [...(parsed.prefixInfo.extensions ?? []), ...(parsed.suffixInfo.extensions ?? [])];
-			const assets = extensions
-				.filter((ext) => ext.type === ModuleInfo.ExtensionType.ASSET_DEPENDENCY)
-				.map((ext) => ({
-					hashType: ext.hashType!,
-					hash: ext.hash!,
-					name: ext.name!
-				}));
-			if (assets.length > 0) {
-				parsed.assets = assets;
-			}
-			const securityExtension = extensions.find((ext) => ext.type === ModuleInfo.ExtensionType.SECURITY_MODE);
-			if (securityExtension) {
-				parsed.security = { mode: securityExtension.securityMode! };
-				if (securityExtension.certificate) {
-					parsed.security.certificate = securityExtension.certificate;
-				}
-			}
-			const result = Object.assign(fileInfo, parsed);
-			if (callback) {
-				callback(result, null);
-			}
-			return result;
-		} catch (error) {
-			if (callback) {
-				callback(null, error);
-			}
-			throw error;
-		}
+		return withCallback(parseFileBuffer(this, fileInfo), callback);
 	}
 
 	/**
@@ -605,6 +555,47 @@ export class HalModuleParser {
 		}
 		return suffix;
 	}
+}
+
+/** Parses the module in `fileInfo.fileBuffer` and adds the parsed fields to `fileInfo` */
+async function parseFileBuffer(parser: HalModuleParser, fileInfo: FileBufferInfo): Promise<FileInfo> {
+	const parsed: ParsedFileFields = {
+		crc: computeCrc(fileInfo.fileBuffer),
+		prefixInfo: parser._readPrefix(fileInfo.fileBuffer),
+		suffixInfo: parser._readSuffix(fileInfo.fileBuffer)
+	};
+	const extensions = [...(parsed.prefixInfo.extensions ?? []), ...(parsed.suffixInfo.extensions ?? [])];
+	const assets = extensions
+		.filter((ext) => ext.type === ModuleInfo.ExtensionType.ASSET_DEPENDENCY)
+		.map((ext) => ({
+			hashType: ext.hashType!,
+			hash: ext.hash!,
+			name: ext.name!
+		}));
+	if (assets.length > 0) {
+		parsed.assets = assets;
+	}
+	const securityExtension = extensions.find((ext) => ext.type === ModuleInfo.ExtensionType.SECURITY_MODE);
+	if (securityExtension) {
+		parsed.security = { mode: securityExtension.securityMode! };
+		if (securityExtension.certificate) {
+			parsed.security.certificate = securityExtension.certificate;
+		}
+	}
+	return Object.assign(fileInfo, parsed);
+}
+
+/** Calls the legacy `(result, error)` callback, if any, once `promise` settles */
+async function withCallback<T>(promise: Promise<T>, callback?: (result: T | null, error: unknown) => void): Promise<T> {
+	let result: T;
+	try {
+		result = await promise;
+	} catch (error) {
+		callback?.(null, error);
+		throw error;
+	}
+	callback?.(result, null);
+	return result;
 }
 
 function computeCrc(fileBuffer: Buffer): CrcInfo {
