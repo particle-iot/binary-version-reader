@@ -43,7 +43,7 @@
 	},
 	"devDependencies": {
 		"@particle/device-constants": "^4.2.1",
-		"@particle/tooling": "^0.1.10",
+		"@particle/tooling": "^0.2.0",
 		"@types/archiver": "^8.0.0",
 		"@types/buffer-crc32": "^0.2.4",
 		"@types/node": "^22.20.5",
