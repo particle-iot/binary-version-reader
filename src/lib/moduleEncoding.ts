@@ -7,8 +7,9 @@ import { promisify } from 'util';
 import * as zlib from 'zlib';
 
 import { platformsById, type FirmwareModuleInfo } from '@particle/device-constants';
-import { schema as protobufSchema } from '@particle/device-os-protobuf';
+import deviceOsProtobufDefinitions from '@particle/device-os-protobuf/src/pbjs-generated/definitions.json';
 import { ZipArchive } from 'archiver';
+import { Root } from 'protobufjs';
 import * as unzip from 'unzipper';
 
 import {
@@ -201,6 +202,9 @@ type EditablePrefix = Omit<PrefixInfo, 'moduleStartAddy' | 'moduleEndAddy' | 'ex
 type EditableSuffix = Omit<SuffixInfo, 'extensions'> & {
 	extensions?: ModuleExtensionInput[];
 };
+
+/** Built from JSON into a private root, so it never touches the protobufjs default root that other generated modules share */
+const EnvVars = Root.fromJSON(deviceOsProtobufDefinitions).lookupType('particle.system.EnvVars');
 
 const DEFAULT_START_ALIGNMENT = 8;
 
@@ -1646,10 +1650,9 @@ export async function encodeEnvVarsAsset(
 		}
 	}
 
-	const EnvVars = protobufSchema.system.EnvVars;
 	const assetData = EnvVars.encode(
 		EnvVars.create({
-			vars: Object.entries(vars).map(([name, value]) => EnvVars.Var.create({ name, value })),
+			vars: Object.entries(vars).map(([name, value]) => ({ name, value })),
 			hash,
 			updatedAt
 		})
